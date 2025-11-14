@@ -23,7 +23,7 @@ program
   .option('--preview', 'Preview the request and token usage without making an API call.', false)
   .option('--preview-json', 'When using --preview, also dump the full JSON payload.', false)
   .option('--silent', 'Hide the model answer and only print stats.', false)
-  .option('--exec-session <id>', 'Internal flag used for detached session execution.')
+  .addOption(new Option('--exec-session <id>').hideHelp())
   .option('--render-markdown', 'Emit the assembled markdown bundle for prompt + files and exit.', false)
   .showHelpAfterError('(use --help for usage)');
 
