@@ -75,7 +75,7 @@ Oracle writes every non-preview run to `~/.oracle/sessions/<timestamp>-<slug>` a
 
 Commands:
 
-- `oracle session <sessionId>` – attach to a running/completed session, replay the log, and follow new output if the request is still alive.
+- `oracle session <sessionId>` – attach to a running/completed session, replay the log, and follow new output if the request is still alive. Run `oracle session` with no ID to list recent sessions (same as `oracle status`).
 - `oracle status [--hours <n>] [--limit <n>] [--all]` – list recent sessions (default 24 hours, capped at 1,000 entries). Increase the window or limit as needed.
 
 Typical workflow:

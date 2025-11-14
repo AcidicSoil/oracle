@@ -31,9 +31,16 @@ program
   .showHelpAfterError('(use --help for usage)');
 
 program
-  .command('session <id>')
-  .description('Attach to a stored session, replay its transcript, and follow live output if still running.')
-  .action(async (sessionId) => {
+  .command('session [id]')
+  .description('Attach to a stored session or list recent sessions when no ID is provided.')
+  .option('--hours <hours>', 'Look back this many hours when listing sessions (default 24).', parseFloatOption, 24)
+  .option('--limit <count>', 'Maximum sessions to show when listing (max 1000).', parseIntOption, 100)
+  .option('--all', 'Include all stored sessions regardless of age.', false)
+  .action(async (sessionId, cmd) => {
+    if (!sessionId) {
+      await showStatus({ hours: cmd.all ? Infinity : cmd.hours, includeAll: cmd.all, limit: cmd.limit });
+      return;
+    }
     await attachSession(sessionId);
   });
 
