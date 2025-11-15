@@ -32,6 +32,9 @@ npx -y @steipete/oracle --engine browser -p "Summarize the risk register" --file
 # Globs/exclusions
 npx -y @steipete/oracle -p "Review the TS data layer" --file "src/**/*.ts" --file "!src/**/*.test.ts"
 
+# Mixed glob + single file
+npx -y @steipete/oracle -p "Audit data layer" --file "src/**/*.ts" --file README.md
+
 # Inspect past sessions
 oracle status --clear --hours 168   # prune a week of cached runs
 oracle status                       # list runs; grab an ID
