@@ -24,7 +24,7 @@ describe('runBrowserSessionExecution', () => {
         cliVersion: '1.0.0',
       },
       {
-        assemblePrompt: async () => ({ markdown: 'prompt', estimatedInputTokens: 42 }),
+        assemblePrompt: async () => ({ markdown: 'prompt', composerText: 'prompt', estimatedInputTokens: 42 }),
         executeBrowser: async () => ({
           answerText: 'ok',
           answerMarkdown: 'ok',
@@ -50,7 +50,7 @@ describe('runBrowserSessionExecution', () => {
         cliVersion: '1.0.0',
       },
       {
-        assemblePrompt: async () => ({ markdown: 'prompt', estimatedInputTokens: 1 }),
+        assemblePrompt: async () => ({ markdown: 'prompt', composerText: 'prompt', estimatedInputTokens: 1 }),
         executeBrowser: async () => ({
           answerText: 'text',
           answerMarkdown: 'markdown',

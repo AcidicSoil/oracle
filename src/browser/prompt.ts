@@ -3,6 +3,7 @@ import { readFiles, buildPrompt, createFileSections, DEFAULT_SYSTEM_PROMPT, MODE
 
 export interface BrowserPromptArtifacts {
   markdown: string;
+  composerText: string;
   estimatedInputTokens: number;
 }
 
@@ -26,6 +27,8 @@ export async function assembleBrowserPrompt(
     lines.push(`[FILE: ${section.displayPath}]`, section.content.trimEnd(), '');
   });
   const markdown = lines.join('\n').trimEnd();
+  const composerLines = [`System instructions: ${systemPrompt}`, '', userPrompt];
+  const composerText = composerLines.join('\n').trim();
   const tokenizer = MODEL_CONFIGS[runOptions.model].tokenizer;
   const estimatedInputTokens = tokenizer(
     [
@@ -34,5 +37,5 @@ export async function assembleBrowserPrompt(
     ],
     TOKENIZER_OPTIONS,
   );
-  return { markdown, estimatedInputTokens };
+  return { markdown, composerText, estimatedInputTokens };
 }

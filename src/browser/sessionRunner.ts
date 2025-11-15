@@ -44,13 +44,13 @@ export async function runBrowserSessionExecution(
         })}`,
       ),
     );
-    log(chalk.dim(`[verbose] Browser prompt length: ${promptArtifacts.markdown.length} chars`));
+    log(chalk.dim(`[verbose] Browser prompt length: ${promptArtifacts.composerText.length} chars`));
   }
   const headerLine = `Oracle (${cliVersion}) launching browser mode (${runOptions.model}) with ~${promptArtifacts.estimatedInputTokens.toLocaleString()} tokens`;
   log(headerLine);
   log(chalk.dim('Chrome automation does not stream output; this may take a minute...'));
   const browserResult = await executeBrowser({
-    prompt: promptArtifacts.markdown,
+    prompt: promptArtifacts.composerText,
     config: browserConfig,
     log,
   });

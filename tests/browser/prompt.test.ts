@@ -22,6 +22,8 @@ describe('assembleBrowserPrompt', () => {
     expect(result.markdown).toContain('[SYSTEM]');
     expect(result.markdown).toContain('[USER]');
     expect(result.markdown).toContain('[FILE: a.txt]');
+    expect(result.composerText).toContain('System instructions:');
+    expect(result.composerText).toContain('Explain the bug');
     expect(result.estimatedInputTokens).toBeGreaterThan(0);
   });
 
@@ -34,5 +36,7 @@ describe('assembleBrowserPrompt', () => {
     });
     expect(result.markdown).toContain('[FILE: docs/one.md]');
     expect(result.markdown).toContain('[FILE: docs/two.md]');
+    expect(result.composerText).toContain('docs/one.md');
+    expect(result.composerText).toContain('docs/two.md');
   });
 });

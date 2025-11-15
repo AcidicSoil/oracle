@@ -401,9 +401,10 @@ async function verifyPromptCommitted(Runtime: ChromeClient['Runtime'], prompt: s
   const script = `(() => {
     const editor = document.querySelector('#prompt-textarea');
     const fallback = document.querySelector('textarea[name="prompt-textarea"]');
-    const normalizedPrompt = ${encodedPrompt}.toLowerCase();
+    const normalize = (value) => value?.toLowerCase?.().replace(/\\s+/g, ' ').trim() ?? '';
+    const normalizedPrompt = normalize(${encodedPrompt});
     const articles = Array.from(document.querySelectorAll('article[data-testid^="conversation-turn"]'));
-    const userMatched = articles.some((node) => node?.innerText?.toLowerCase().includes(normalizedPrompt));
+    const userMatched = articles.some((node) => normalize(node?.innerText).includes(normalizedPrompt));
     return {
       userMatched,
       fallbackValue: fallback?.value ?? '',
