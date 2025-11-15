@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import type { WriteStream } from 'node:fs';
+import type { TransportFailureReason } from './oracle.js';
 
 export type SessionMode = 'api' | 'browser';
 
@@ -36,6 +37,10 @@ export interface SessionResponseMetadata {
   requestId?: string | null;
   status?: string;
   incompleteReason?: string | null;
+}
+
+export interface SessionTransportMetadata {
+  reason?: TransportFailureReason;
 }
 
 export interface StoredRunOptions {
@@ -74,6 +79,7 @@ export interface SessionMetadata {
   elapsedMs?: number;
   browser?: BrowserMetadata;
   response?: SessionResponseMetadata;
+  transport?: SessionTransportMetadata;
 }
 
 interface SessionLogWriter {

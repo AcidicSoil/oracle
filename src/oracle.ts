@@ -1,5 +1,9 @@
 import chalk from 'chalk';
-import OpenAI from 'openai';
+import OpenAI, {
+  APIConnectionError,
+  APIConnectionTimeoutError,
+  APIUserAbortError,
+} from 'openai';
 import { countTokens as countTokensGpt5 } from 'gpt-tokenizer/model/gpt-5';
 import { countTokens as countTokensGpt5Pro } from 'gpt-tokenizer/model/gpt-5-pro';
 import fs from 'node:fs/promises';
@@ -203,6 +207,22 @@ export class OracleResponseError extends Error {
     this.name = 'OracleResponseError';
     this.response = response;
     this.metadata = extractResponseMetadata(response);
+  }
+}
+
+export type TransportFailureReason = 'client-timeout' | 'connection-lost' | 'client-abort' | 'unknown';
+
+export class OracleTransportError extends Error {
+  readonly reason: TransportFailureReason;
+
+  constructor(reason: TransportFailureReason, message: string, cause?: unknown) {
+    super(message);
+    this.name = 'OracleTransportError';
+    this.reason = reason;
+    if (cause) {
+      // Assigning cause enables Node 18+ cause tracking without downlevel TS support.
+      (this as Error & { cause?: unknown }).cause = cause;
+    }
   }
 }
 
@@ -514,6 +534,47 @@ export function extractResponseMetadata(response?: OracleResponse | null): Oracl
   return metadata;
 }
 
+function toTransportError(error: unknown): OracleTransportError {
+  if (error instanceof OracleTransportError) {
+    return error;
+  }
+  if (error instanceof APIConnectionTimeoutError) {
+    return new OracleTransportError('client-timeout', 'OpenAI request timed out before completion.', error);
+  }
+  if (error instanceof APIUserAbortError) {
+    return new OracleTransportError(
+      'client-abort',
+      'The request was aborted before OpenAI finished responding.',
+      error,
+    );
+  }
+  if (error instanceof APIConnectionError) {
+    return new OracleTransportError(
+      'connection-lost',
+      'Connection to OpenAI dropped before the response completed.',
+      error,
+    );
+  }
+  return new OracleTransportError(
+    'unknown',
+    error instanceof Error ? error.message : 'Unknown transport failure.',
+    error,
+  );
+}
+
+function describeTransportError(error: OracleTransportError): string {
+  switch (error.reason) {
+    case 'client-timeout':
+      return 'Client-side timeout: OpenAI streaming call exceeded the 20m deadline.';
+    case 'connection-lost':
+      return 'Connection to OpenAI ended unexpectedly before the response completed.';
+    case 'client-abort':
+      return 'Request was aborted before OpenAI completed the response.';
+    default:
+      return 'OpenAI streaming call ended with an unknown transport error.';
+  }
+}
+
 function createDefaultClientFactory(): (apiKey: string) => ClientLike {
   return (key: string): ClientLike => {
     const instance = new OpenAI({
@@ -687,7 +748,9 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
     if (typeof stream.abort === 'function') {
       stream.abort();
     }
-    throw streamError;
+    const transportError = toTransportError(streamError);
+    log(chalk.yellow(describeTransportError(transportError)));
+    throw transportError;
   }
 
   const response = await stream.finalResponse();
@@ -696,6 +759,13 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
 
   if (response.status && response.status !== 'completed') {
     const detail = response.error?.message || response.incomplete_details?.reason || response.status;
+    log(
+      chalk.yellow(
+        `OpenAI ended the run early (status=${response.status}${
+          response.incomplete_details?.reason ? `, reason=${response.incomplete_details.reason}` : ''
+        }).`,
+      ),
+    );
     throw new OracleResponseError(`Response did not complete: ${detail}`, response);
   }
 
