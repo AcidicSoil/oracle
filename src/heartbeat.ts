@@ -14,6 +14,7 @@ export function startHeartbeat(config: HeartbeatConfig): () => void {
   let pending = false;
   const start = Date.now();
   const timer = setInterval(async () => {
+    // biome-ignore lint/nursery/noUnnecessaryConditions: stop flag flips asynchronously
     if (stopped || pending) {
       return;
     }
@@ -36,6 +37,7 @@ export function startHeartbeat(config: HeartbeatConfig): () => void {
   }, intervalMs);
   timer.unref?.();
   const stop = () => {
+    // biome-ignore lint/nursery/noUnnecessaryConditions: multiple callers may race to stop
     if (stopped) {
       return;
     }
