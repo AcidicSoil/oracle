@@ -2,7 +2,14 @@
 
 Comprehensive refactor roadmap following GPT-5 Pro's review. Each section lists the goal, concrete actions, success criteria, dependencies, and open design decisions/options to finalize with the team.
 
-## 1. File Attachments: Ignore + Size Guardrails
+## Current Status
+
+- ✅ Section 1 implemented (glob filtering + 1 MB hard cap, CLI/docs updated, tests covering ignore/size handling).
+- ⌛ Section 2 (error semantics) is the next major focus.
+
+---
+
+## 1. File Attachments: Ignore + Size Guardrails (✅ completed)
 - **Goal**: prevent runaway uploads/token blow-ups when `--file` targets large trees.
 - **Actions**:
   1. Add a `files.ignore` config (CLI flag + env var + `.oracleignore` file) applied before `readFiles` expands paths.
@@ -14,7 +21,7 @@ Comprehensive refactor roadmap following GPT-5 Pro's review. Each section lists 
   - `.oracleignore` syntax (gitignore vs JSON). Suggested: gitignore-style with CLI overrides.
   - Hard vs soft limits: fail by default when limits hit, with `--allow-large-files` escape hatch.
 
-## 2. Unified Error Semantics (API + Browser)
+## 2. Unified Error Semantics (API + Browser) — *Next up*
 - **Goal**: consistent failure types, clearer CLI messaging, richer session metadata.
 - **Actions**:
   1. Create typed error classes (`FileValidationError`, `BrowserAutomationError`, etc.) deriving from existing `OracleResponseError`/`OracleTransportError`.
