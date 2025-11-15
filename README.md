@@ -74,8 +74,7 @@ pnpm test
 pnpm test:coverage
 ```
 
-If you’re looking for an even more powerful context-management tool, check out https://repoprompt.com
-
 ---
 
+If you’re looking for an even more powerful context-management tool, check out https://repoprompt.com
 Name credit: https://ampcode.com/news/oracle
