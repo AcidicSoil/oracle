@@ -1,5 +1,9 @@
 # oracle
 
+<p align="center">
+  <img src="./README-header.png" alt="Oracle CLI header banner" width="720">
+</p>
+
 Oracle is a one-shot CLI for GPT-5 Pro / GPT-5.1 when you need deep reasoning plus lots of local context. Point it at your prompt and the relevant files (code, logs, docs); Oracle bundles everything into either the Responses API (needs `OPENAI_API_KEY`) or the ChatGPT web UI (no key required), keeps the run alive in the background, and records a searchable transcript.
 
 ## Quick start
