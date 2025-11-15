@@ -24,13 +24,13 @@ If you omit `--engine`, Oracle prefers the API engine when `OPENAI_API_KEY` is p
 
 ```bash
 # One-off (no install)
-OPENAI_API_KEY=sk-... npx @steipete/oracle -p "Summarize the risk register" --file docs/risk-register.md docs/risk-matrix.md
+OPENAI_API_KEY=sk-... npx -y @steipete/oracle -p "Summarize the risk register" --file docs/risk-register.md docs/risk-matrix.md
 
 # Browser engine (no API key)
-npx @steipete/oracle --engine browser -p "Summarize the risk register" --file docs/risk-register.md docs/risk-matrix.md
+npx -y @steipete/oracle --engine browser -p "Summarize the risk register" --file docs/risk-register.md docs/risk-matrix.md
 
 # Globs/exclusions
-npx @steipete/oracle -p "Review the TS data layer" --file "src/**/*.ts" --file "!src/**/*.test.ts"
+npx -y @steipete/oracle -p "Review the TS data layer" --file "src/**/*.ts" --file "!src/**/*.test.ts"
 
 # Inspect past sessions
 oracle status --clear --hours 168   # prune a week of cached runs
@@ -40,7 +40,7 @@ oracle session <id>                 # replay a run locally
 
 ## How do I integrate this?
 
-- **One-liner in CI** — `OPENAI_API_KEY=sk-... npx @steipete/oracle --prompt "Smoke-check latest PR" --file src/ docs/ --preview summary` (add to your pipeline as a non-blocking report step).
+- **One-liner in CI** — `OPENAI_API_KEY=sk-... npx -y @steipete/oracle --prompt "Smoke-check latest PR" --file src/ docs/ --preview summary` (add to your pipeline as a non-blocking report step).
 - **Package script** — In `package.json`: `"oracle": "oracle --prompt \"Review the diff\" --file ."` then run `OPENAI_API_KEY=... pnpm oracle`.
 
 ## Highlights
