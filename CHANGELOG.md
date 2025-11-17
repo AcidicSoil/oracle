@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - `oracle session|status <id> --render` (alias `--render-markdown`) pretty-prints completed session markdown to ANSI in rich TTYs, falls back to raw when non-TTY or oversized logs.
 - Hidden root-level `--session <id>` alias attaches directly to a stored session (for agents/automation).
 - README now recommends preferring API engine for reliability and longer uninterrupted runs when an API key is available.
+- Session rendering now uses Markdansi (micromark/mdast-based), removing markdown-it-terminal and eliminating HTML leakage/crashes during replays.
 
 ## 1.0.8 — 2025-11-16
 
