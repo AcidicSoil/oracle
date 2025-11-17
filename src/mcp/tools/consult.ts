@@ -33,8 +33,8 @@ export function registerConsultTool(server: McpServer): void {
     {
       title: 'Run an Oracle session',
       description: 'Execute a prompt with optional files via the Oracle CLI engines and return the stored session result.',
-      inputSchema: consultInputSchema,
-      outputSchema: consultOutputSchema,
+      inputSchema: consultInputSchema.shape,
+      outputSchema: consultOutputSchema.shape,
     },
     async (input: unknown) => {
       const { prompt, files, model, engine, slug } = consultInputSchema.parse(input);
