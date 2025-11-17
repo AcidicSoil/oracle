@@ -4,10 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## 1.1.0 — 2025-11-17
 
+Highlights
+- Markdown rendering for completed sessions (`oracle session|status <id> --render` / `--render-markdown`) with ANSI formatting in rich TTYs; falls back to raw when logs are huge or stdout isn’t a TTY.
+- New `--path` flag on `oracle session <id>` prints the stored session directory plus metadata/request/log files, erroring if anything is missing. Uses soft color in rich terminals for quick scanning.
+
+Details
 ### Added
 - `oracle session <id> --path` now prints the on-disk session directory plus metadata/request/log files, exiting with an error when any expected file is missing instead of attaching.
 - When run in a rich TTY, `--path` labels and paths are colorized for easier scanning.
 
+### Improved
+- `oracle session|status <id> --render` (alias `--render-markdown`) pretty-prints completed session markdown to ANSI in rich TTYs, falls back to raw when non-TTY or oversized logs.
 ## 1.0.10 — 2025-11-17
 
 ### Added
