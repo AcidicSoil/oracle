@@ -30,6 +30,13 @@
     },
     "iterm": {
       "command": "/Users/steipete/Projects/iterm-mcp/build/index.js"
+    },
+    "oracle-local": {
+      "command": "node",
+      "args": [
+        "../dist/bin/oracle-mcp.js"
+      ],
+      "root": ".."
     }
   },
   "imports": []

@@ -10,26 +10,27 @@ import {
 } from '../../sessionManager.js';
 import { sessionsInputSchema } from '../types.js';
 
-const sessionListSchema = z.object({
-  entries: z.array(
-    z.object({
-      id: z.string(),
-      createdAt: z.string(),
-      status: z.string(),
-      model: z.string().optional(),
-      mode: z.string().optional(),
-    }),
-  ),
-  total: z.number(),
-  truncated: z.boolean(),
-});
-
-const sessionDetailSchema = z.object({
-  session: z.object({
-    metadata: z.record(z.any()),
-    log: z.string(),
-    request: z.record(z.any()).optional(),
-  }),
+const sessionOutputSchema = z.object({
+  entries: z
+    .array(
+      z.object({
+        id: z.string(),
+        createdAt: z.string(),
+        status: z.string(),
+        model: z.string().optional(),
+        mode: z.string().optional(),
+      }),
+    )
+    .optional(),
+  total: z.number().optional(),
+  truncated: z.boolean().optional(),
+  session: z
+    .object({
+      metadata: z.record(z.any()),
+      log: z.string(),
+      request: z.record(z.any()).optional(),
+    })
+    .optional(),
 });
 
 export function registerSessionsTool(server: McpServer): void {
@@ -40,7 +41,7 @@ export function registerSessionsTool(server: McpServer): void {
       title: 'List or fetch Oracle sessions',
       description: 'List stored sessions or return full stored data for a given session ID/slug.',
       inputSchema,
-      outputSchema: z.union([sessionListSchema, sessionDetailSchema]) as z.ZodType<object>,
+      outputSchema: sessionOutputSchema as z.ZodType<object>,
     },
     async (input: unknown) => {
       const { id, hours = 24, limit = 100, includeAll = false, detail = false } = sessionsInputSchema.parse(input);

@@ -12,6 +12,7 @@
 4. **Validation**
    - [ ] `pnpm vitest`
    - [ ] `pnpm run lint`
+   - [ ] MCP sanity check: with `config/mcporter.json` pointed at the local stdio server (`oracle-local`), run `mcporter list oracle-local --schema --config config/mcporter.json` after building (`pnpm build`) to ensure tools/resources are discoverable.
 5. **Publish**
    - [ ] `npm login` (or confirm session) & check 2FA.
    - [ ] `npm publish --tag beta --access public` (adjust tag if needed).

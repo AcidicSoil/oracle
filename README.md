@@ -57,6 +57,7 @@ oracle session <id>                 # replay a run locally
     }
     ```
   - Claude Code / mcporter snippet: set `command: "oracle-mcp"` (no args). The server runs over stdio; no auth needed beyond your existing `OPENAI_API_KEY`/browser cookies the CLI already uses. See `docs/mcp.md` for tool/resource details.
+  - If you don’t want to export `OPENAI_API_KEY`, pass it inline: `OPENAI_API_KEY=sk-... oracle -p "Quick check" --file src/` or `OPENAI_API_KEY=sk-... pnpm mcp`.
 
 ## Highlights
 
