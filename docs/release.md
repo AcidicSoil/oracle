@@ -18,5 +18,6 @@
    - [ ] Verify positional prompt still works: `npx -y @steipete/oracle "Test prompt" --dry-run`.
 6. **Post-publish**
    - [ ] Promote desired dist-tag (e.g., `npm dist-tag add @steipete/oracle@X.Y.Z latest`).
+   - [ ] `git tag vX.Y.Z && git push origin vX.Y.Z` (always tag each release).
    - [ ] `git tag vX.Y.Z && git push --tags`
    - [ ] Announce / share release notes.
