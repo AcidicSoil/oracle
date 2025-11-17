@@ -24,6 +24,7 @@ export interface BrowserSessionConfig {
   desiredModel?: string | null;
   debug?: boolean;
   allowCookieErrors?: boolean;
+  remoteChrome?: { host: string; port: number };
 }
 
 export interface BrowserRuntimeMetadata {
