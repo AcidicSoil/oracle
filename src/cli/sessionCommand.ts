@@ -14,6 +14,7 @@ export interface StatusOptions extends OptionValues {
   renderMarkdown?: boolean;
   path?: boolean;
   verboseRender?: boolean;
+  hidePrompt?: boolean;
 }
 
 interface SessionCommandDependencies {
@@ -104,7 +105,7 @@ export async function handleSessionCommand(
     console.log(`Ignoring flags on session attach: ${ignoredFlags.join(', ')}`);
   }
   const renderMarkdown = Boolean(sessionOptions.render || sessionOptions.renderMarkdown || autoRender);
-  await deps.attachSession(sessionId, { renderMarkdown });
+  await deps.attachSession(sessionId, { renderMarkdown, renderPrompt: !sessionOptions.hidePrompt });
 }
 
 export function formatSessionCleanupMessage(

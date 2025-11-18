@@ -290,6 +290,15 @@ export async function readSessionLog(sessionId: string): Promise<string> {
   }
 }
 
+export async function readSessionRequest(sessionId: string): Promise<StoredRunOptions | null> {
+  try {
+    const raw = await fs.readFile(requestPath(sessionId), 'utf8');
+    return JSON.parse(raw) as StoredRunOptions;
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteSessionsOlderThan({
   hours = 24,
   includeAll = false,

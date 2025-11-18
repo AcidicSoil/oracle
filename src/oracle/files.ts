@@ -6,6 +6,7 @@ import { FileValidationError } from './errors.js';
 
 const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024; // 1 MB
 const DEFAULT_FS = fs as MinimalFsModule;
+const DEFAULT_IGNORED_DIRS = ['node_modules', 'dist', 'coverage', '.git', '.turbo', '.next', 'build', 'tmp'];
 
 interface PartitionedFiles {
   globPatterns: string[];
@@ -35,7 +36,23 @@ export async function readFiles(
     candidatePaths = await expandWithCustomFs(partitioned, fsModule);
   }
 
-  if (candidatePaths.length === 0) {
+  const resolvedLiteralDirs = new Set(partitioned.literalDirectories.map((dir) => path.resolve(dir)));
+  const ignoredLog = new Set<string>();
+  const filteredCandidates = candidatePaths.filter((filePath) => {
+    const ignoredDir = findIgnoredAncestor(filePath, cwd, resolvedLiteralDirs);
+    if (!ignoredDir) {
+      return true;
+    }
+    const key = `${ignoredDir}|${filePath}`;
+    if (!ignoredLog.has(key)) {
+      const displayFile = relativePath(filePath, cwd);
+      console.log(`Skipping default-ignored path: ${displayFile} (matches ${ignoredDir})`);
+      ignoredLog.add(key);
+    }
+    return false;
+  });
+
+  if (filteredCandidates.length === 0) {
     throw new FileValidationError('No files matched the provided --file patterns.', {
       patterns: partitioned.globPatterns,
       excludes: partitioned.excludePatterns,
@@ -44,7 +61,7 @@ export async function readFiles(
 
   const oversized: string[] = [];
   const accepted: string[] = [];
-  for (const filePath of candidatePaths) {
+  for (const filePath of filteredCandidates) {
     let stats: FsStats;
     try {
       stats = await fsModule.stat(filePath);
@@ -189,6 +206,21 @@ function isGitignored(filePath: string, sets: GitignoreSet[]): boolean {
     }
   }
   return false;
+}
+
+function findIgnoredAncestor(filePath: string, cwd: string, literalDirs: Set<string>): string | null {
+  const absolute = path.resolve(filePath);
+  if (literalDirs.has(absolute) || Array.from(literalDirs).some((dir) => absolute.startsWith(`${dir}${path.sep}`))) {
+    return null; // explicitly requested directory/file overrides default ignore
+  }
+  const rel = path.relative(cwd, absolute);
+  const parts = rel.split(path.sep);
+  for (const part of parts) {
+    if (DEFAULT_IGNORED_DIRS.includes(part)) {
+      return part;
+    }
+  }
+  return null;
 }
 
 function matchesAny(relativePath: string, patterns: string[]): boolean {

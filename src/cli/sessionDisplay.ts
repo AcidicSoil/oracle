@@ -6,6 +6,7 @@ import {
   listSessionsMetadata,
   readSessionLog,
   readSessionMetadata,
+  readSessionRequest,
   SESSIONS_DIR,
   wait,
 } from '../sessionManager.js';
@@ -14,7 +15,7 @@ import { renderMarkdownAnsi } from './markdownRenderer.js';
 
 const isTty = (): boolean => Boolean(process.stdout.isTTY);
 const dim = (text: string): string => (isTty() ? kleur.dim(text) : text);
-const MAX_RENDER_BYTES = 200_000;
+export const MAX_RENDER_BYTES = 200_000;
 
 export interface ShowStatusOptions {
   hours: number;
@@ -73,6 +74,7 @@ function colorStatus(status: string, padded: string): string {
 export interface AttachSessionOptions {
   suppressMetadata?: boolean;
   renderMarkdown?: boolean;
+  renderPrompt?: boolean;
 }
 
 type LiveRenderState = {
@@ -118,6 +120,14 @@ export async function attachSession(sessionId: string, options?: AttachSessionOp
   }
 
   const shouldTrimIntro = initialStatus === 'completed' || initialStatus === 'error';
+  if (options?.renderPrompt !== false) {
+    const prompt = await readStoredPrompt(sessionId);
+    if (prompt) {
+      console.log(chalk.bold('Prompt:'));
+      console.log(renderMarkdownAnsi(prompt));
+      console.log(dim('---'));
+    }
+  }
   if (shouldTrimIntro) {
     const fullLog = await readSessionLog(sessionId);
     const trimmed = trimBeforeFirstAnswer(fullLog);
@@ -416,4 +426,16 @@ function extractRenderableChunks(text: string, state: LiveRenderState): { chunks
     buffer += segment;
   }
   return { chunks, remainder: buffer };
+}
+
+async function readStoredPrompt(sessionId: string): Promise<string | null> {
+  const request = await readSessionRequest(sessionId);
+  if (request?.prompt && request.prompt.trim().length > 0) {
+    return request.prompt;
+  }
+  const meta = await readSessionMetadata(sessionId);
+  if (meta?.options?.prompt && meta.options.prompt.trim().length > 0) {
+    return meta.options.prompt;
+  }
+  return null;
 }
