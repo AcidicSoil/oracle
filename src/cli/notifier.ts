@@ -105,6 +105,7 @@ function buildMessage(payload: NotificationContent, answerPreview?: string): str
   const sessionLabel = payload.sessionName || payload.sessionId;
   parts.push(sessionLabel);
 
+  // Show cost only for API runs.
   if (payload.mode === 'api') {
     const cost = payload.costUsd ?? inferCost(payload);
     if (cost !== undefined) {
