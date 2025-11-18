@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 - gpt-5-pro API runs default to non-blocking; add `--wait` to block. `gpt-5.1` and browser runs still block by default. CLI now polls once for `in_progress` responses before failing.
 - macOS notifier helper now ships signed/notarized with the Oracle icon and auto-repairs execute bits for the fallback terminal-notifier.
 - Session summaries and cost displays are clearer, with zombie-session detection to avoid stale runs.
+- Token estimation now uses the full request body (instructions + input text + tools/reasoning/background/store) and compares estimated vs actual tokens in the finished stats to reduce 400/413 surprises.
 
 #### MCP configuration (quick reference)
 - Local stdio (mcporter): add to `config/mcporter.json`

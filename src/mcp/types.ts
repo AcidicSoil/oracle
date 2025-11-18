@@ -5,6 +5,7 @@ export const consultInputSchema = z.object({
   files: z.array(z.string()).default([]),
   model: z.string().optional(),
   engine: z.enum(['api', 'browser']).optional(),
+  browserModelLabel: z.string().optional(),
   search: z.boolean().optional(),
   slug: z.string().optional(),
 });
