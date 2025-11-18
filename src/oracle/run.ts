@@ -127,6 +127,16 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
   const cliVersion = getCliVersion();
   const richTty = process.stdout.isTTY && chalk.level > 0;
   const headerModelLabel = richTty ? chalk.cyan(modelConfig.model) : modelConfig.model;
+  const requestBody = buildRequestBody({
+    modelConfig,
+    systemPrompt,
+    userPrompt: promptWithFiles,
+    searchEnabled,
+    maxOutputTokens: options.maxOutput,
+    background: useBackground,
+    storeResponse: useBackground,
+  });
+  const estimatedInputTokens = estimateRequestTokens(requestBody, modelConfig);
   const tokenLabel = richTty ? chalk.green(estimatedInputTokens.toLocaleString()) : estimatedInputTokens.toLocaleString();
   const fileLabel = richTty ? chalk.magenta(fileCount.toString()) : fileCount.toString();
   const headerLine = `oracle (${cliVersion}) consulting ${headerModelLabel}'s crystal ball with ${tokenLabel} tokens and ${fileLabel} files...`;
@@ -158,8 +168,6 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
     background: useBackground,
     storeResponse: useBackground,
   });
-
-  const estimatedInputTokens = estimateRequestTokens(requestBody, modelConfig);
   logVerbose(`Estimated tokens (request body): ${estimatedInputTokens.toLocaleString()}`);
 
   if (isPreview && previewMode) {

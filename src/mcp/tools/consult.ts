@@ -29,7 +29,6 @@ const consultOutputShape = {
   sessionId: z.string(),
   status: z.string(),
   output: z.string(),
-  metadata: z.record(z.string(), z.any()).optional(),
 } satisfies z.ZodRawShape;
 
 export function registerConsultTool(server: McpServer): void {
@@ -159,12 +158,14 @@ export function registerConsultTool(server: McpServer): void {
       try {
         const finalMeta = (await readSessionMetadata(sessionMeta.id)) ?? sessionMeta;
         return {
-          content: textContent(output),
+          content: textContent(
+            `Session ${sessionMeta.id} (${finalMeta.status})\n${output || '(no output captured)'}`
+              .trim(),
+          ),
           structuredContent: {
             sessionId: sessionMeta.id,
             status: finalMeta.status,
             output,
-            metadata: finalMeta,
           },
         };
       } catch (error) {
