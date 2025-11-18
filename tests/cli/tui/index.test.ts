@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { UserConfig } from '../../../src/config.js';
 
 const promptMock = vi.fn();
@@ -30,8 +30,12 @@ vi.mock('../../../src/sessionManager.ts', () => ({
 // Import after mocks are registered
 const tui = await import('../../../src/cli/tui/index.ts');
 
+const originalCI = process.env.CI;
+
 describe('askOracleFlow', () => {
   beforeEach(() => {
+    // Make notification defaults deterministic (CI disables by default).
+    process.env.CI = '';
     promptMock.mockReset();
     performSessionRunMock.mockReset();
     ensureSessionStorageMock.mockReset();
@@ -81,11 +85,15 @@ describe('askOracleFlow', () => {
     expect(initializeSessionMock).toHaveBeenCalledWith(
       expect.objectContaining({ prompt: 'Hello world', mode: 'api' }),
       expect.any(String),
-      expect.objectContaining({ enabled: expect.any(Boolean), sound: false }),
+      expect.objectContaining({ enabled: true, sound: false }),
     );
     expect(performSessionRunMock).toHaveBeenCalledTimes(1);
     expect(performSessionRunMock.mock.calls[0][0].sessionMeta.id).toBe('sess-123');
   });
+});
+
+afterAll(() => {
+  process.env.CI = originalCI;
 });
 
 describe('resolveCost basics', () => {
