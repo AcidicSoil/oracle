@@ -135,11 +135,26 @@ function formatSessionLabel(meta: SessionMetadata): string {
   const slug = meta.id;
   const chars = meta.options?.prompt?.length ?? meta.promptPreview?.length ?? 0;
   const charLabel = chars > 0 ? chalk.gray(String(chars).padStart(5)) : chalk.gray('    -');
-  const cost = meta.usage?.cost;
+  const cost = mode === 'browser' ? null : resolveCost(meta);
   const costLabel = cost != null ? chalk.gray(formatUSD(cost).padStart(6)) : chalk.gray('     -');
   return `${status} ${chalk.white(model.padEnd(10))} ${chalk.gray(mode.padEnd(7))} ${chalk.gray(created)} ${charLabel} ${costLabel}  ${chalk.cyan(
     slug,
   )}`;
+}
+
+function resolveCost(meta: SessionMetadata): number | null {
+  if (meta.usage?.cost != null) {
+    return meta.usage.cost;
+  }
+  if (!meta.model || !meta.usage) {
+    return null;
+  }
+  const pricing = MODEL_CONFIGS[meta.model as keyof typeof MODEL_CONFIGS]?.pricing;
+  if (!pricing) return null;
+  const input = meta.usage.inputTokens ?? 0;
+  const output = meta.usage.outputTokens ?? 0;
+  const cost = input * pricing.inputPerToken + output * pricing.outputPerToken;
+  return cost > 0 ? cost : null;
 }
 
 function formatTimestampAligned(iso: string): string {
@@ -490,3 +505,4 @@ async function readStoredPrompt(sessionId: string): Promise<string | null> {
 
 // Exported for testing
 export { askOracleFlow, showSessionDetail };
+export { resolveCost };

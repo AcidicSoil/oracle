@@ -198,7 +198,7 @@ export async function runBrowserMode(options: BrowserRunOptions): Promise<Browse
       logger(`Chrome window closed before completion: ${normalizedError.message}`);
       logger(normalizedError.stack);
     }
-    throw new Error('Chrome window closed before Oracle finished. Please keep it open until completion.', {
+    throw new Error('Chrome window closed before oracle finished. Please keep it open until completion.', {
       cause: normalizedError,
     });
   } finally {

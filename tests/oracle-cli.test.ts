@@ -262,7 +262,7 @@ describe('runOracle preview mode', () => {
     expect(result.previewMode).toBe('json');
     expect(result.requestBody?.tools).toEqual([{ type: 'web_search_preview' }]);
     expect(logs.some((line) => line === 'Request JSON')).toBe(true);
-    expect(logs.some((line) => line.startsWith('Oracle ('))).toBe(false);
+    expect(logs.some((line) => line.startsWith('oracle ('))).toBe(false);
   });
 
   test('omits request JSON in preview-only mode', async () => {
@@ -280,7 +280,7 @@ describe('runOracle preview mode', () => {
       },
     );
 
-    expect(logs.some((line) => line.startsWith('Oracle ('))).toBe(false);
+    expect(logs.some((line) => line.startsWith('oracle ('))).toBe(false);
     expect(logs.some((line) => line === 'Request JSON')).toBe(false);
   });
 
@@ -356,7 +356,7 @@ describe('runOracle streaming output', () => {
 
     expect(result.mode).toBe('live');
     expect(writes.join('')).toBe('Hello world\n\n');
-    expect(logs.some((line) => line.startsWith('Oracle ('))).toBe(true);
+    expect(logs.some((line) => line.startsWith('oracle ('))).toBe(true);
     expect(logs.some((line) => line.startsWith('Finished in '))).toBe(true);
   });
 
@@ -388,7 +388,7 @@ describe('runOracle streaming output', () => {
     );
 
     expect(writes).toEqual([]);
-    expect(logs.some((line) => line.startsWith('Oracle ('))).toBe(true);
+    expect(logs.some((line) => line.startsWith('oracle ('))).toBe(true);
     const finishedLine = logs.find((line) => line.startsWith('Finished in '));
     expect(finishedLine).toBeDefined();
   });
@@ -482,7 +482,7 @@ describe('runOracle file reports', () => {
         log: (msg: string) => logs.push(msg),
       },
     );
-    expect(logs.some((line) => line.startsWith('Oracle ('))).toBe(true);
+    expect(logs.some((line) => line.startsWith('oracle ('))).toBe(true);
     const fileUsageIndex = logs.indexOf('File Token Usage');
     expect(fileUsageIndex).toBeGreaterThan(-1);
     const fileLines = logs.slice(fileUsageIndex + 1, fileUsageIndex + 3);
@@ -517,7 +517,7 @@ describe('runOracle file reports', () => {
         },
       ),
     ).rejects.toThrow('Input too large');
-    expect(logs.some((line) => line.startsWith('Oracle ('))).toBe(true);
+    expect(logs.some((line) => line.startsWith('oracle ('))).toBe(true);
     expect(logs.find((line) => line === 'File Token Usage')).toBeDefined();
   });
 
@@ -547,7 +547,7 @@ describe('runOracle file reports', () => {
       },
     );
 
-    expect(logs.some((line) => line.startsWith('Oracle ('))).toBe(true);
+    expect(logs.some((line) => line.startsWith('oracle ('))).toBe(true);
     const fileLogIndex = logs.indexOf('File Token Usage');
     expect(fileLogIndex).toBeGreaterThan(-1);
     expect(logs.some((line) => line.includes('note.txt'))).toBe(true);
@@ -703,6 +703,7 @@ describe('oracle utility helpers', () => {
       const ignoredFile = path.join(dir, 'secret.log');
       const nestedIgnored = path.join(dir, 'build', 'asset.js');
       const keptFile = path.join(dir, 'kept.txt');
+      await mkdir(path.join(dir, 'dist'), { recursive: true });
       await mkdir(path.join(dir, 'build'), { recursive: true });
       await writeFile(gitignore, 'secret.log\nbuild/\n', 'utf8');
       await writeFile(ignoredFile, 'should skip', 'utf8');
@@ -730,7 +731,7 @@ describe('oracle utility helpers', () => {
       await writeFile(ignored, 'ignored', 'utf8');
       await writeFile(kept, 'kept', 'utf8');
 
-      const files = await readFiles([dir], { cwd: dir });
+      const files = await readFiles([path.join(dir, 'dist')], { cwd: dir });
       const basenames = files.map((file) => path.basename(file.path));
       expect(basenames).toContain('bundle.js');
       expect(basenames).not.toContain('bundle.js.map');
@@ -772,6 +773,35 @@ describe('oracle utility helpers', () => {
       const files = await readFiles([nodeModules], { cwd: dir });
       const basenames = files.map((file) => path.basename(file.path));
       expect(basenames).toContain('package.json');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('readFiles logs and skips default-ignored dirs under project roots', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'oracle-readfiles-ignore-logs-'));
+    const ignoredDirs = ['node_modules', 'dist', 'coverage'];
+    try {
+      for (const ignored of ignoredDirs) {
+        const ignoredDir = path.join(dir, ignored);
+        await mkdir(ignoredDir, { recursive: true });
+        await writeFile(path.join(ignoredDir, `${ignored}-ignored.txt`), 'ignored', 'utf8');
+      }
+      const keepFile = path.join(dir, 'src', 'keep.ts');
+      await mkdir(path.dirname(keepFile), { recursive: true });
+      await writeFile(keepFile, 'keep', 'utf8');
+
+      const { vi } = await import('vitest');
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+      const files = await readFiles([dir], { cwd: dir });
+      const basenames = files.map((file) => path.basename(file.path));
+
+      expect(basenames).toContain('keep.ts');
+      for (const ignored of ignoredDirs) {
+        expect(basenames.some((name) => name.includes(`${ignored}-ignored.txt`))).toBe(false);
+        const logged = logSpy.mock.calls.flat().some((arg) => String(arg ?? '').includes(ignored));
+        expect(logged).toBe(true);
+      }
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

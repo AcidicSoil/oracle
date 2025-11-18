@@ -63,7 +63,7 @@ export async function runBrowserSessionExecution(
       log(chalk.dim('[verbose] Browser inline file fallback enabled (pasting file contents).'));
     }
   }
-  const headerLine = `Oracle (${cliVersion}) launching browser mode (${runOptions.model}) with ~${promptArtifacts.estimatedInputTokens.toLocaleString()} tokens`;
+  const headerLine = `oracle (${cliVersion}) launching browser mode (${runOptions.model}) with ~${promptArtifacts.estimatedInputTokens.toLocaleString()} tokens`;
   const automationLogger: BrowserLogger = ((message?: string) => {
     if (typeof message === 'string') {
       log(message);

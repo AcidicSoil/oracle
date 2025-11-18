@@ -39,9 +39,7 @@ void shikiPromise
   });
 
 export async function ensureShikiReady(): Promise<void> {
-  if (shiki) {
-    return;
-  }
+  if (shiki) return;
   try {
     shiki = await shikiPromise;
   } catch {

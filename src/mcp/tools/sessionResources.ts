@@ -15,7 +15,7 @@ export function registerSessionResources(server: McpServer): void {
     'oracle-session',
     template,
     {
-      title: 'Oracle session resources',
+      title: 'oracle session resources',
       description: 'Read stored session metadata, log, or request payload.',
     },
     async (uri, variables) => {

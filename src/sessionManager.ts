@@ -86,6 +86,7 @@ export interface SessionMetadata {
     outputTokens: number;
     reasoningTokens: number;
     totalTokens: number;
+    cost?: number;
   };
   errorMessage?: string;
   elapsedMs?: number;
@@ -115,6 +116,7 @@ interface InitializeSessionOptions extends StoredRunOptions {
 const ORACLE_HOME = process.env.ORACLE_HOME_DIR ?? path.join(os.homedir(), '.oracle');
 const SESSIONS_DIR = path.join(ORACLE_HOME, 'sessions');
 const MAX_STATUS_LIMIT = 1000;
+const ZOMBIE_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
 const DEFAULT_SLUG = 'session';
 const MAX_SLUG_WORDS = 5;
 const MIN_CUSTOM_SLUG_WORDS = 3;
@@ -239,7 +241,8 @@ export async function initializeSession(
 export async function readSessionMetadata(sessionId: string): Promise<SessionMetadata | null> {
   try {
     const raw = await fs.readFile(metaPath(sessionId), 'utf8');
-    return JSON.parse(raw) as SessionMetadata;
+    const parsed = JSON.parse(raw) as SessionMetadata;
+    return await markZombie(parsed, { persist: false });
   } catch {
     return null;
   }
@@ -272,8 +275,9 @@ export async function listSessionsMetadata(): Promise<SessionMetadata[]> {
   const entries = await fs.readdir(SESSIONS_DIR).catch(() => []);
   const metas: SessionMetadata[] = [];
   for (const entry of entries) {
-    const meta = await readSessionMetadata(entry);
+    let meta = await readSessionMetadata(entry);
     if (meta) {
+      meta = await markZombie(meta, { persist: true });
       metas.push(meta);
     }
   }
@@ -357,6 +361,7 @@ export async function wait(ms: number): Promise<void> {
 }
 
 export { ORACLE_HOME, SESSIONS_DIR, MAX_STATUS_LIMIT };
+export { ZOMBIE_MAX_AGE_MS };
 
 export async function getSessionPaths(sessionId: string): Promise<{
   dir: string;
@@ -382,4 +387,35 @@ export async function getSessionPaths(sessionId: string): Promise<{
   }
 
   return { dir, metadata, log, request };
+}
+
+async function markZombie(meta: SessionMetadata, { persist }: { persist: boolean }): Promise<SessionMetadata> {
+  if (!isZombie(meta)) {
+    return meta;
+  }
+  const updated: SessionMetadata = {
+    ...meta,
+    status: 'error',
+    errorMessage: 'Session marked as zombie (>30m stale)',
+    completedAt: new Date().toISOString(),
+  };
+  if (persist) {
+    await fs.writeFile(metaPath(meta.id), JSON.stringify(updated, null, 2), 'utf8');
+  }
+  return updated;
+}
+
+function isZombie(meta: SessionMetadata): boolean {
+  if (meta.status !== 'running') {
+    return false;
+  }
+  const reference = meta.startedAt ?? meta.createdAt;
+  if (!reference) {
+    return false;
+  }
+  const startedMs = Date.parse(reference);
+  if (Number.isNaN(startedMs)) {
+    return false;
+  }
+  return Date.now() - startedMs > ZOMBIE_MAX_AGE_MS;
 }

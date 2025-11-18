@@ -134,7 +134,7 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
   const headerModelLabel = richTty ? chalk.cyan(modelConfig.model) : modelConfig.model;
   const tokenLabel = richTty ? chalk.green(estimatedInputTokens.toLocaleString()) : estimatedInputTokens.toLocaleString();
   const fileLabel = richTty ? chalk.magenta(fileCount.toString()) : fileCount.toString();
-  const headerLine = `Oracle (${cliVersion}) consulting ${headerModelLabel}'s crystal ball with ${tokenLabel} tokens and ${fileLabel} files...`;
+  const headerLine = `oracle (${cliVersion}) consulting ${headerModelLabel}'s crystal ball with ${tokenLabel} tokens and ${fileLabel} files...`;
   const shouldReportFiles =
     (options.filesReport || fileTokenInfo.totalTokens > inputTokenBudget) && fileTokenInfo.stats.length > 0;
   if (!isPreview) {
@@ -279,15 +279,33 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
   logVerbose(`Response status: ${response.status ?? 'completed'}`);
 
   if (response.status && response.status !== 'completed') {
-    const detail = response.error?.message || response.incomplete_details?.reason || response.status;
-    log(
-      chalk.yellow(
-        `OpenAI ended the run early (status=${response.status}${
-          response.incomplete_details?.reason ? `, reason=${response.incomplete_details.reason}` : ''
-        }).`,
-      ),
-    );
-    throw new OracleResponseError(`Response did not complete: ${detail}`, response);
+    if (response.id && response.status === 'in_progress') {
+      const polishingStart = now();
+      const pollIntervalMs = 2_000;
+      const maxWaitMs = 60_000;
+      log(chalk.dim('Response still in_progress; polling until completion...'));
+      // Poll retrieve until completed or timeout.
+      while (now() - polishingStart < maxWaitMs) {
+        await wait(pollIntervalMs);
+        const refreshed = await openAiClient.responses.retrieve(response.id);
+        if (refreshed.status === 'completed') {
+          response = refreshed;
+          break;
+        }
+      }
+    }
+
+    if (response.status !== 'completed') {
+      const detail = response.error?.message || response.incomplete_details?.reason || response.status;
+      log(
+        chalk.yellow(
+          `OpenAI ended the run early (status=${response.status}${
+            response.incomplete_details?.reason ? `, reason=${response.incomplete_details.reason}` : ''
+          }).`,
+        ),
+      );
+      throw new OracleResponseError(`Response did not complete: ${detail}`, response);
+    }
   }
 
   const answerText = extractTextOutput(response);

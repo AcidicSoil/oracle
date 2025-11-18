@@ -37,7 +37,7 @@ export function registerSessionsTool(server: McpServer): void {
   server.registerTool(
     'sessions',
     {
-      title: 'List or fetch Oracle sessions',
+      title: 'List or fetch oracle sessions',
       description:
         'List stored sessions (same defaults as `oracle status`) or, with id/slug, return a summary row. Pass detail:true to include metadata, log, and stored request for that session.',
       // The MCP SDK accepts either Zod schemas or raw shapes; cast to any to avoid versioned type drift.
