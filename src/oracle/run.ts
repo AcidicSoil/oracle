@@ -307,6 +307,11 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
     throw new Error('API did not return a response.');
   }
 
+  if (sawTextDelta && !options.silent) {
+    write('\n');
+    log('');
+  }
+
   logVerbose(`Response status: ${response.status ?? 'completed'}`);
 
   if (response.status && response.status !== 'completed') {

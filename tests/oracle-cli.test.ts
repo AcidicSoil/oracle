@@ -304,6 +304,35 @@ describe('api key logging', () => {
     expect(logLines[answerLineIndex - 1]).toBe('');
   });
 
+  test('streamed answers get a newline before verbose footer', async () => {
+    const stream = new MockStream(
+      [
+        { type: 'response.output_text.delta', delta: 'Yo bro.' },
+      ],
+      buildResponse(),
+    );
+    const client = new MockClient(stream);
+    const logs: string[] = [];
+    const writes: string[] = [];
+    await runOracle(
+      { prompt: 'Greeting', model: 'gpt-5-pro', verbose: true, background: false },
+      {
+        apiKey: 'sk-test',
+        client,
+        log: (msg: string) => logs.push(msg),
+        write: (chunk) => {
+          writes.push(chunk);
+          return true;
+        },
+      },
+    );
+
+    const verboseIndex = logs.findIndex((line) => line.includes('Response status:'));
+    expect(verboseIndex).toBeGreaterThan(0);
+    expect(logs[verboseIndex - 1]).toBe('');
+    expect(writes.join('')).toContain('Yo bro.\n');
+  });
+
   test('verbose run spells out token labels', async () => {
     const stream = new MockStream([], buildResponse());
     const client = new MockClient(stream);
@@ -472,7 +501,7 @@ describe('runOracle streaming output', () => {
     );
 
     expect(result.mode).toBe('live');
-    expect(writes.join('')).toBe('Hello world\n\n');
+    expect(writes.join('')).toBe('Hello world\n\n\n');
     expect(logs.some((line) => line.startsWith('🧿 oracle ('))).toBe(true);
     expect(logs.some((line) => line.startsWith('Finished in '))).toBe(true);
   });
@@ -560,7 +589,7 @@ describe('runOracle streaming output', () => {
       },
     );
 
-    expect(writes.join('')).toBe('visible\n\n');
+    expect(writes.join('')).toBe('visible\n\n\n');
   });
 });
 
