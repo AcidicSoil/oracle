@@ -29,6 +29,7 @@ import {
   toTransportError,
 } from './errors.js';
 import { createDefaultClientFactory } from './client.js';
+import { formatBaseUrlForLog, maskApiKey } from './logging.js';
 import { startHeartbeat } from '../heartbeat.js';
 import { startOscProgress } from './oscProgress.js';
 import { getCliVersion } from '../version.js';
@@ -59,14 +60,6 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
   } = deps;
   const baseUrl = options.baseUrl?.trim() || process.env.OPENAI_BASE_URL?.trim();
 
-  const maskApiKey = (key: string | undefined | null): string | null => {
-    if (!key) return null;
-    if (key.length <= 8) return `${key[0] ?? ''}***${key[key.length - 1] ?? ''}`;
-    const prefix = key.slice(0, 4);
-    const suffix = key.slice(-4);
-    return `${prefix}****${suffix}`;
-  };
-
   const logVerbose = (message: string): void => {
     if (options.verbose) {
       log(dim(`[verbose] ${message}`));
@@ -87,7 +80,7 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
     log(dim(`Using OPENAI_API_KEY=${maskedKey}`));
   }
   if (baseUrl) {
-    log(dim(`Using OpenAI BASE URL: ${baseUrl}`));
+    log(dim(`Using OpenAI base URL (redacted): ${formatBaseUrlForLog(baseUrl)}`));
   }
 
   const modelConfig = MODEL_CONFIGS[options.model];
