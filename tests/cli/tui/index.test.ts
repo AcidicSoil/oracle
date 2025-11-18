@@ -82,10 +82,23 @@ describe('askOracleFlow', () => {
     await tui.askOracleFlow('1.3.0', config);
 
     expect(ensureSessionStorageMock).toHaveBeenCalled();
+    const expectedNotifyEnabled = !(
+      (process.env.CI && String(process.env.CI).length > 0) ||
+      (process.env.SSH_CONNECTION && String(process.env.SSH_CONNECTION).length > 0)
+    );
     expect(initializeSessionMock).toHaveBeenCalledWith(
-      expect.objectContaining({ prompt: 'Hello world', mode: 'api' }),
+      expect.objectContaining({
+        prompt: 'Hello world',
+        mode: 'api',
+        model: 'gpt-5-pro',
+        file: [],
+      }),
       expect.any(String),
-      expect.objectContaining({ enabled: true, sound: false }),
+<<<<<<< HEAD
+      expect.objectContaining({ enabled: expectedNotifyEnabled, sound: false }),
+=======
+      expect.objectContaining({ enabled: expectedNotifyEnabled }),
+>>>>>>> 5d93332 (fix: stabilize TUI tests for notification defaults)
     );
     expect(performSessionRunMock).toHaveBeenCalledTimes(1);
     expect(performSessionRunMock.mock.calls[0][0].sessionMeta.id).toBe('sess-123');
