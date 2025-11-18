@@ -330,7 +330,7 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
   return {
     mode: 'live',
     response,
-    usage: { inputTokens, outputTokens, reasoningTokens, totalTokens },
+    usage: { inputTokens, outputTokens, reasoningTokens, totalTokens, cost },
     elapsedMs,
   };
 }

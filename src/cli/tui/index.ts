@@ -6,6 +6,7 @@ import os from 'node:os';
 import fs from 'node:fs/promises';
 import { MODEL_CONFIGS, type ModelName, type RunOracleOptions } from '../../oracle.js';
 import { renderMarkdownAnsi } from '../markdownRenderer.js';
+import { formatUSD } from '../../oracle/format.js';
 import {
   createSessionLogWriter,
   getSessionPaths,
@@ -46,19 +47,20 @@ export async function launchTui({ version }: LaunchTuiOptions): Promise<void> {
     const { recent, older, hasMoreOlder } = await fetchSessionBuckets(olderOffset);
     const choices: Array<SessionChoice | inquirer.Separator> = [];
     if (recent.length > 0) {
-      choices.push(new inquirer.Separator('Recent (≤24h)'));
+      choices.push(new inquirer.Separator());
+      choices.push(new inquirer.Separator('Status  Model      Mode    Timestamp           Chars  Cost  Slug'));
       choices.push(...recent.map(toSessionChoice));
     } else if (older.length > 0 && olderOffset === 0) {
-      choices.push(new inquirer.Separator('Sessions'));
+      choices.push(new inquirer.Separator());
+      choices.push(new inquirer.Separator('Status  Model      Mode    Timestamp           Chars  Cost  Slug'));
       choices.push(...older.slice(0, PAGE_SIZE).map(toSessionChoice));
     }
     if (older.length > 0 && olderOffset > 0) {
-      choices.push(new inquirer.Separator('Older sessions'));
+      choices.push(new inquirer.Separator());
+      choices.push(new inquirer.Separator('Status  Model      Mode    Timestamp           Chars  Cost  Slug'));
       choices.push(...older.slice(0, PAGE_SIZE).map(toSessionChoice));
     }
-    if (choices.length > 0) {
-      choices.unshift(new inquirer.Separator('Status  Model      Mode    Timestamp           Chars  Slug'));
-    }
+    choices.push(new inquirer.Separator());
     choices.push(new inquirer.Separator('Actions'));
     choices.push({ name: chalk.bold.green('Ask Oracle'), value: '__ask__' });
     if (hasMoreOlder) {
@@ -80,7 +82,7 @@ export async function launchTui({ version }: LaunchTuiOptions): Promise<void> {
     ]);
 
     if (selection === '__exit__') {
-      console.log(chalk.green('Goodbye!'));
+      console.log(chalk.green('🧿 Closing the book. See you next prompt.'));
       return;
     }
     if (selection === '__more__') {
@@ -133,7 +135,9 @@ function formatSessionLabel(meta: SessionMetadata): string {
   const slug = meta.id;
   const chars = meta.options?.prompt?.length ?? meta.promptPreview?.length ?? 0;
   const charLabel = chars > 0 ? chalk.gray(String(chars).padStart(5)) : chalk.gray('    -');
-  return `${status} ${chalk.white(model.padEnd(10))} ${chalk.gray(mode.padEnd(7))} ${chalk.gray(created)} ${charLabel}  ${chalk.cyan(
+  const cost = meta.usage?.cost;
+  const costLabel = cost != null ? chalk.gray(formatUSD(cost).padStart(6)) : chalk.gray('     -');
+  return `${status} ${chalk.white(model.padEnd(10))} ${chalk.gray(mode.padEnd(7))} ${chalk.gray(created)} ${charLabel} ${costLabel}  ${chalk.cyan(
     slug,
   )}`;
 }

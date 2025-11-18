@@ -38,6 +38,17 @@ void shikiPromise
     shiki = null;
   });
 
+export async function ensureShikiReady(): Promise<void> {
+  if (shiki) {
+    return;
+  }
+  try {
+    shiki = await shikiPromise;
+  } catch {
+    shiki = null;
+  }
+}
+
 function normalizeLanguage(lang?: string): HighlightLang | null {
   if (!lang) return null;
   const key = lang.toLowerCase();

@@ -12,7 +12,7 @@ import {
 } from '../sessionManager.js';
 import type { OracleResponseMetadata } from '../oracle.js';
 import { renderMarkdownAnsi } from './markdownRenderer.js';
-import { formatElapsed } from '../oracle/format.js';
+import { formatElapsed, formatUSD } from '../oracle/format.js';
 
 const isTty = (): boolean => Boolean(process.stdout.isTTY);
 const dim = (text: string): string => (isTty() ? kleur.dim(text) : text);
@@ -48,7 +48,7 @@ export async function showStatus({ hours, includeAll, limit, showExamples = fals
     const created = formatTimestamp(entry.createdAt);
     const chars = entry.options?.prompt?.length ?? entry.promptPreview?.length ?? 0;
     const charLabel = chars > 0 ? String(chars).padStart(5) : '    -';
-    const costLabel = '   -';
+    const costLabel = entry.usage?.cost != null ? formatUSD(entry.usage.cost).padStart(6) : '     -';
     console.log(`${created} | ${charLabel} | ${costLabel} | ${status} | ${model} | ${entry.id}`);
   }
   if (truncated) {
@@ -462,10 +462,11 @@ export function formatCompletionSummary(metadata: SessionMetadata): string | nul
   }
   const modeLabel = metadata.mode === 'browser' ? `${metadata.model ?? 'n/a'}[browser]` : metadata.model ?? 'n/a';
   const usage = metadata.usage;
+  const costPart = usage.cost != null ? ` | ${formatUSD(usage.cost)}` : '';
   const tokensDisplay = `${usage.inputTokens}/${usage.outputTokens}/${usage.reasoningTokens}/${usage.totalTokens}`;
   const filesCount = metadata.options?.file?.length ?? 0;
   const filesPart = filesCount > 0 ? ` | files=${filesCount}` : '';
-  return `Finished in ${formatElapsed(metadata.elapsedMs)} (${modeLabel} | tok(i/o/r/t)=${tokensDisplay}${filesPart})`;
+  return `Finished in ${formatElapsed(metadata.elapsedMs)} (${modeLabel}${costPart} | tok(i/o/r/t)=${tokensDisplay}${filesPart})`;
 }
 
 async function readStoredPrompt(sessionId: string): Promise<string | null> {
