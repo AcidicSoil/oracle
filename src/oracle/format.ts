@@ -2,13 +2,8 @@ export function formatUSD(value: number): string {
   if (!Number.isFinite(value)) {
     return 'n/a';
   }
-  if (value >= 0.1) {
-    return `$${value.toFixed(2)}`;
-  }
-  if (value >= 0.01) {
-    return `$${value.toFixed(3)}`;
-  }
-  return `$${value.toFixed(6)}`;
+  // Display with 4 decimal places, rounding to $0.0001 minimum granularity.
+  return `$${value.toFixed(4)}`;
 }
 
 export function formatNumber(

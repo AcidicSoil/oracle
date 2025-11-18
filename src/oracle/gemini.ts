@@ -134,7 +134,7 @@ export function createGeminiClient(
           return parts.join('');
         };
         async function* iterator() {
-          let streamingResp;
+          let streamingResp: Awaited<ReturnType<typeof model.generateContentStream>>;
           try {
             streamingResp = await model.generateContentStream(geminiBody);
           } catch (error) {
@@ -169,7 +169,7 @@ export function createGeminiClient(
       },
       create: async (body: OracleRequestBody): Promise<OracleResponse> => {
         const geminiBody = adaptBodyToGemini(body);
-        let result;
+        let result: Awaited<ReturnType<typeof model.generateContent>>;
         try {
           result = await model.generateContent(geminiBody);
         } catch (error) {

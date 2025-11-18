@@ -376,8 +376,8 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
     statsParts.push(`files=${files.length}`);
   }
 
-  const sessionSuffix = options.sessionId ? ` | session ${options.sessionId} completed` : '';
-  log(chalk.blue(`Finished in ${elapsedDisplay} (${statsParts.join(' | ')})${sessionSuffix}`));
+  const sessionPrefix = options.sessionId ? `${options.sessionId} ` : '';
+  log(chalk.blue(`Finished ${sessionPrefix}in ${elapsedDisplay} (${statsParts.join(' | ')})`));
 
   return {
     mode: 'live',

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createGeminiClient, resolveGeminiModelId } from '../src/oracle/gemini.js';
+import type { OracleRequestBody } from '../src/oracle.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const { mockGetGenerativeModel, mockGenerateContent, mockGenerateContentStream } = vi.hoisted(() => {
@@ -14,20 +15,29 @@ const { mockGetGenerativeModel, mockGenerateContent, mockGenerateContentStream }
 
 vi.mock('@google/generative-ai', () => {
   return {
+    // biome-ignore lint/style/useNamingConvention: mirror SDK export name
+    // biome-ignore lint/complexity/useArrowFunction: needs function for `new`
     GoogleGenerativeAI: vi.fn().mockImplementation(function () {
       return {
         getGenerativeModel: mockGetGenerativeModel,
       };
     }),
+    // biome-ignore lint/style/useNamingConvention: mirror SDK enums
     HarmCategory: {
-        HARM_CATEGORY_HARASSMENT: 'HARM_CATEGORY_HARASSMENT',
-        HARM_CATEGORY_HATE_SPEECH: 'HARM_CATEGORY_HATE_SPEECH',
-        HARM_CATEGORY_SEXUALLY_EXPLICIT: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        HARM_CATEGORY_DANGEROUS_CONTENT: 'HARM_CATEGORY_DANGEROUS_CONTENT'
+      // biome-ignore lint/style/useNamingConvention: mirror SDK enums
+      HARM_CATEGORY_HARASSMENT: 'HARM_CATEGORY_HARASSMENT',
+      // biome-ignore lint/style/useNamingConvention: mirror SDK enums
+      HARM_CATEGORY_HATE_SPEECH: 'HARM_CATEGORY_HATE_SPEECH',
+      // biome-ignore lint/style/useNamingConvention: mirror SDK enums
+      HARM_CATEGORY_SEXUALLY_EXPLICIT: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+      // biome-ignore lint/style/useNamingConvention: mirror SDK enums
+      HARM_CATEGORY_DANGEROUS_CONTENT: 'HARM_CATEGORY_DANGEROUS_CONTENT',
     },
+    // biome-ignore lint/style/useNamingConvention: mirror SDK enums
     HarmBlockThreshold: {
-        BLOCK_NONE: 'BLOCK_NONE'
-    }
+      // biome-ignore lint/style/useNamingConvention: mirror SDK enums
+      BLOCK_NONE: 'BLOCK_NONE',
+    },
   };
 });
 
@@ -65,7 +75,7 @@ describe('Gemini Client', () => {
     };
     mockGenerateContent.mockResolvedValue(mockResponse);
 
-    const requestBody = {
+    const requestBody: OracleRequestBody = {
       model: 'gemini-3-pro',
       instructions: 'System prompt',
       input: [
@@ -75,7 +85,7 @@ describe('Gemini Client', () => {
         },
       ],
       max_output_tokens: 100,
-    } as any;
+    };
 
     const result = await client.responses.create(requestBody);
 
@@ -132,7 +142,7 @@ describe('Gemini Client', () => {
 
     mockGenerateContentStream.mockResolvedValue(mockStream);
 
-    const requestBody = {
+    const requestBody: OracleRequestBody = {
       model: 'gemini-3-pro',
       instructions: 'System',
       input: [
@@ -142,7 +152,7 @@ describe('Gemini Client', () => {
         },
       ],
       tools: [{ type: 'web_search_preview' }],
-    } as any;
+    };
 
     const stream = await client.responses.stream(requestBody);
     const chunks: string[] = [];
@@ -176,7 +186,7 @@ describe('Gemini Client', () => {
       },
     });
 
-    const requestBody = {
+    const requestBody: OracleRequestBody = {
       model: 'gemini-3-pro',
       instructions: 'Sys',
       input: [
@@ -186,7 +196,7 @@ describe('Gemini Client', () => {
         },
       ],
       tools: [],
-    } as any;
+    };
 
     await client.responses.create(requestBody);
     expect(mockGenerateContent.mock.calls[0]?.[0]).toMatchObject({

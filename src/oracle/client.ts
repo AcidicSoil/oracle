@@ -22,7 +22,7 @@ export function createDefaultClientFactory(): ClientFactory {
     key: string,
     options?: { baseUrl?: string; azure?: AzureOptions; model?: ModelName; resolvedModelId?: string },
   ): ClientLike => {
-    if (options?.model && options.model.startsWith('gemini')) {
+    if (options?.model?.startsWith('gemini')) {
     // Gemini client uses its own SDK; allow passing the already-resolved id for transparency/logging.
     return createGeminiClient(key, options.model, options.resolvedModelId);
     }

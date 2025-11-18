@@ -519,9 +519,6 @@ async function runRootCommand(options: CliOptions): Promise<void> {
     engine,
   });
 
-  const effectiveModelId =
-    resolvedModel.startsWith('gemini') ? resolveGeminiModelId(resolvedModel) : resolvedModel;
-
   if (await handleStatusFlag(options, { attachSession, showStatus })) {
     return;
   }

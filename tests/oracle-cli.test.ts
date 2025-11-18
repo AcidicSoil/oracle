@@ -266,11 +266,11 @@ describe('api key logging', () => {
         write: () => true,
       },
     );
-    const finished = logs.find((line) => line.startsWith('Finished in '));
+    const finished = logs.find((line) => line.startsWith('Finished abc123 in '));
     expect(finished).toBeDefined();
-    expect(finished).toContain('session abc123 completed');
+    expect(finished).toContain('abc123');
     // Ensure no separate duplicate completion line was logged
-    expect(logs.filter((line) => line.includes('session abc123 completed')).length).toBe(1);
+    expect(logs.filter((line) => line.includes('Finished abc123 in')).length).toBe(1);
   });
 
   test('verbose logs insert separation before answer stream', async () => {
@@ -551,7 +551,7 @@ describe('runOracle background mode', () => {
     const client = new MockBackgroundClient([initialResponse, finalResponse]);
     client.triggerConnectionDrop();
 
-    const wait = async (ms: number) => {};
+    const wait = async (_ms: number) => {};
     const now = () => Date.now();
     
     await runOracle(
@@ -1054,9 +1054,9 @@ describe('oracle utility helpers', () => {
   });
 
   test('formatting helpers render friendly output', () => {
-    expect(formatUSD(12.345)).toBe('$12.35');
-    expect(formatUSD(0.05)).toBe('$0.050');
-    expect(formatUSD(0.000123)).toBe('$0.000123');
+    expect(formatUSD(12.345)).toBe('$12.3450');
+    expect(formatUSD(0.05)).toBe('$0.0500');
+    expect(formatUSD(0.000123)).toBe('$0.0001');
     expect(formatUSD(Number.NaN)).toBe('n/a');
 
     expect(formatNumber(1000)).toBe('1,000');

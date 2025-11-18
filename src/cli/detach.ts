@@ -2,9 +2,10 @@ import type { EngineMode } from './engine.js';
 import type { ModelName } from '../oracle.js';
 
 export function shouldDetachSession({
-  engine,
+  // Params kept for future policy tweaks; currently only model/disableDetachEnv matter.
+  engine: _engine,
   model,
-  waitPreference,
+  waitPreference: _waitPreference,
   disableDetachEnv,
 }: {
   engine: EngineMode;
