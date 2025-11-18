@@ -21,7 +21,7 @@ export async function ensureModelSelection(
     | { status: 'already-selected'; label?: string | null }
     | { status: 'switched'; label?: string | null }
     | { status: 'switched-best-effort'; label?: string | null }
-    | { status: 'option-not-found'; snapshot?: unknown }
+    | { status: 'option-not-found' }
     | { status: 'button-missing' }
     | undefined;
 
@@ -34,10 +34,6 @@ export async function ensureModelSelection(
       return;
     }
     case 'option-not-found': {
-      // If we captured a snapshot of menu items, log it to aid debugging.
-      if (result.snapshot) {
-        logger(`[model picker] menu snapshot: ${JSON.stringify(result.snapshot)}`);
-      }
       await logDomFailure(Runtime, logger, 'model-switcher-option');
       throw new Error(`Unable to find model option matching "${desiredModel}" in the model switcher.`);
     }
@@ -163,29 +159,6 @@ function buildModelSelectionExpression(targetModel: string): string {
       return Math.max(score, 0);
     };
 
-    const buildMenuSnapshot = () => {
-      const snapshot = [];
-      const menus = Array.from(document.querySelectorAll(${menuContainerLiteral}));
-      for (const menu of menus) {
-        const buttons = Array.from(menu.querySelectorAll(${menuItemLiteral}));
-        for (const option of buttons) {
-          const text = option.textContent?.trim() ?? '';
-          const normalizedText = normalizeText(text);
-          const testid = option.getAttribute('data-testid') ?? '';
-          const selected = optionIsSelected(option);
-          snapshot.push({ text, normalizedText, testid, selected });
-        }
-      }
-      const bestGuess = snapshot
-        .map((item) => ({ item, score: scoreOption(item.normalizedText, item.testid), label: item.text }))
-        .sort((a, b) => b.score - a.score)[0];
-      return {
-        items: snapshot,
-        bestGuess:
-          bestGuess && bestGuess.score > 0 ? { label: bestGuess.label, score: bestGuess.score, node: null } : null,
-      };
-    };
-
     const findBestOption = () => {
       // Walk through every menu item and keep whichever earns the highest score.
       let bestMatch = null;
@@ -239,9 +212,7 @@ function buildModelSelectionExpression(targetModel: string): string {
           return;
         }
         if (performance.now() - start > MAX_WAIT_MS) {
-          // Build a snapshot for debugging; the caller will log it.
-          const snapshot = buildMenuSnapshot();
-          resolve({ status: 'option-not-found', snapshot });
+          resolve({ status: 'option-not-found' });
           return;
         }
         setTimeout(attempt, REOPEN_INTERVAL_MS / 2);
