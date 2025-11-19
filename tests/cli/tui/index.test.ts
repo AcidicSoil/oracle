@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { UserConfig } from '../../../src/config.js';
+import type { RunOracleOptions } from '../../../src/oracle.js';
 
 const promptMock = vi.fn();
 const performSessionRunMock = vi.fn();
@@ -90,6 +91,7 @@ describe('askOracleFlow', () => {
       mode: 'api',
       model: 'gpt-5-pro',
       files: [],
+      models: [],
     });
 
     const config: UserConfig = {};
@@ -103,6 +105,22 @@ describe('askOracleFlow', () => {
     );
     expect(performSessionRunMock).toHaveBeenCalledTimes(1);
     expect(performSessionRunMock.mock.calls[0][0].sessionMeta.id).toBe('sess-123');
+  });
+
+  test('passes multi-model selections to run options', async () => {
+    promptMock.mockResolvedValue({
+      promptInput: 'Multi',
+      mode: 'api',
+      model: 'gpt-5-pro',
+      models: ['gemini-3-pro'],
+      files: [],
+    });
+
+    const config: UserConfig = {};
+    await tui.askOracleFlow('1.3.0', config);
+
+    const creationArgs = initializeSessionMock.mock.calls[0]?.[0] as RunOracleOptions & { models?: string[] };
+    expect(creationArgs.models).toEqual(['gpt-5-pro', 'gemini-3-pro']);
   });
 });
 

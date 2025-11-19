@@ -8,6 +8,7 @@ export function mapConsultToRunOptions({
   prompt,
   files,
   model,
+  models,
   engine,
   search,
   userConfig,
@@ -16,6 +17,7 @@ export function mapConsultToRunOptions({
   prompt: string;
   files: string[];
   model?: string;
+  models?: string[];
   engine?: EngineMode;
   search?: boolean;
   userConfig?: UserConfig;
@@ -23,7 +25,7 @@ export function mapConsultToRunOptions({
 }): { runOptions: RunOracleOptions; resolvedEngine: EngineMode } {
   // Normalize CLI-style inputs through the shared resolver so config/env defaults apply,
   // then overlay MCP-only overrides such as explicit search toggles.
-  const result = resolveRunOptionsFromConfig({ prompt, files, model, engine, userConfig, env });
+  const result = resolveRunOptionsFromConfig({ prompt, files, model, models, engine, userConfig, env });
   if (typeof search === 'boolean') {
     result.runOptions.search = search;
   }

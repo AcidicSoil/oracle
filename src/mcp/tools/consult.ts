@@ -29,6 +29,7 @@ const consultInputShape = {
   prompt: z.string().min(1, 'Prompt is required.'),
   files: z.array(z.string()).default([]),
   model: z.string().optional(),
+  models: z.array(z.string()).optional(),
   engine: z.enum(['api', 'browser']).optional(),
   browserModelLabel: z.string().optional(),
   search: z.boolean().optional(),
@@ -54,12 +55,13 @@ export function registerConsultTool(server: McpServer): void {
     },
     async (input: unknown) => {
       const textContent = (text: string) => [{ type: 'text' as const, text }];
-      const { prompt, files, model, engine, search, browserModelLabel, slug } = consultInputSchema.parse(input);
+      const { prompt, files, model, models, engine, search, browserModelLabel, slug } = consultInputSchema.parse(input);
       const { config: userConfig } = await loadUserConfig();
       const { runOptions, resolvedEngine } = mapConsultToRunOptions({
         prompt,
         files: files ?? [],
         model,
+        models,
         engine,
         search,
         userConfig,

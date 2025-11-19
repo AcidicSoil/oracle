@@ -310,6 +310,7 @@ interface WizardAnswers {
   promptInput: string;
   slug?: string;
   model: ModelName;
+  models?: ModelName[];
   files: string[];
   chromeProfile?: string;
   headless?: boolean;
@@ -367,6 +368,19 @@ async function askOracleFlow(version: string, userConfig: UserConfig): Promise<v
       choices: modelChoices,
     },
     {
+      name: 'models',
+      type: 'checkbox',
+      message: 'Additional API models to fan out to (optional)',
+      choices: modelChoices,
+      when: (ans) => ans.mode === 'api',
+      filter: (values: string[]) =>
+        Array.isArray(values)
+          ? values
+              .map((entry) => entry.trim())
+              .filter((entry): entry is ModelName => modelChoices.includes(entry as ModelName))
+          : [],
+    },
+    {
       name: 'files',
       type: 'input',
       message: 'Files or globs to attach (comma-separated, optional):',
@@ -414,10 +428,21 @@ async function askOracleFlow(version: string, userConfig: UserConfig): Promise<v
   }
   const promptWithSuffix = userConfig.promptSuffix ? `${prompt.trim()}\n${userConfig.promptSuffix}` : prompt;
   await sessionStore.ensureStorage();
+  const normalizedMultiModels =
+    Array.isArray(answers.models) && answers.models.length > 0
+      ? Array.from(
+          new Set(
+            [answers.model, ...answers.models].filter((entry): entry is ModelName =>
+              modelChoices.includes(entry as ModelName),
+            ),
+          ),
+        )
+      : [answers.model];
   const runOptions: RunOracleOptions = {
     prompt: promptWithSuffix,
     model: answers.model,
     file: answers.files,
+    models: normalizedMultiModels.length > 1 ? normalizedMultiModels : undefined,
     slug: answers.slug,
     filesReport: false,
     maxInput: undefined,
