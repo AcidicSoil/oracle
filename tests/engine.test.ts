@@ -31,7 +31,6 @@ describe('resolveEngine', () => {
 describe('defaultWaitPreference', () => {
   it('disables wait for pro API runs', () => {
     expect(defaultWaitPreference('gpt-5.1-pro', 'api')).toBe(false);
-    expect(defaultWaitPreference('gpt-5-pro', 'api')).toBe(false);
   });
 
   it('keeps wait enabled for Codex and browser models', () => {

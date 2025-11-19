@@ -46,13 +46,5 @@ describe('shouldDetachSession', () => {
       disableDetachEnv: false,
     });
     expect(pro51).toBe(true);
-
-    const legacyPro = shouldDetachSession({
-      engine: 'api',
-      model: 'gpt-5-pro',
-      waitPreference: true,
-      disableDetachEnv: false,
-    });
-    expect(legacyPro).toBe(true);
   });
 });

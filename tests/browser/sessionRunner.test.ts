@@ -7,7 +7,7 @@ import { getCliVersion } from '../../src/version.js';
 
 const baseRunOptions: RunOracleOptions = {
   prompt: 'Hello world',
-  model: 'gpt-5-pro',
+  model: 'gpt-5.1-pro',
   file: [],
   silent: false,
 };

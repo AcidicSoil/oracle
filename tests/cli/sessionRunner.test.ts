@@ -53,7 +53,7 @@ const baseSessionMeta: SessionMetadata = {
 
 const baseRunOptions = {
   prompt: 'Hello',
-  model: 'gpt-5-pro' as const,
+  model: 'gpt-5.1-pro' as const,
 };
 
 const log = vi.fn();

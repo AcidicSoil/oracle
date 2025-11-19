@@ -120,9 +120,6 @@ export function resolveApiModel(modelValue: string): ModelName {
   if (normalized.includes('5.1') && normalized.includes('pro')) {
     return 'gpt-5.1-pro';
   }
-  if (normalized.includes('5.0') && normalized.includes('pro')) {
-    return 'gpt-5-pro';
-  }
   if (normalized.includes('codex')) {
     if (normalized.includes('max')) {
       throw new InvalidArgumentError('gpt-5.1-codex-max is not available yet. OpenAI has not released the API.');
@@ -152,13 +149,10 @@ export function inferModelFromLabel(modelValue: string): ModelName {
     return 'gemini-3-pro';
   }
   if (normalized.includes('classic')) {
-    return 'gpt-5-pro';
+    return 'gpt-5.1-pro';
   }
   if ((normalized.includes('5.1') || normalized.includes('5_1')) && normalized.includes('pro')) {
     return 'gpt-5.1-pro';
-  }
-  if (normalized.includes('5.0') && normalized.includes('pro')) {
-    return 'gpt-5-pro';
   }
   if (normalized.includes('pro')) {
     return 'gpt-5.1-pro';

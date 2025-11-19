@@ -142,7 +142,7 @@ describe('resolveRunOptionsFromConfig', () => {
   it('coerces browser engine to api for multi-model codex runs', () => {
     const { resolvedEngine } = resolveRunOptionsFromConfig({
       prompt: basePrompt,
-      models: ['gpt-5.1-codex', 'gpt-5-pro'],
+      models: ['gpt-5.1-codex', 'gpt-5.1-pro'],
       engine: 'browser',
     });
     expect(resolvedEngine).toBe('api');

@@ -234,7 +234,7 @@ describe('attachSession rendering', () => {
     const metaWithUsage: SessionMetadata = {
       ...baseMeta,
       status: 'completed',
-      model: 'gpt-5-pro',
+      model: 'gpt-5.1-pro',
       mode: 'api',
       elapsedMs: 1234,
       usage: { inputTokens: 10, outputTokens: 20, reasoningTokens: 0, totalTokens: 30, cost: 1.23 },

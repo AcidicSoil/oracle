@@ -56,7 +56,7 @@ describe('buildBrowserConfig', () => {
 
   test('prefers explicit browser model label when provided', async () => {
     const config = await buildBrowserConfig({
-      model: 'gpt-5-pro',
+      model: 'gpt-5.1-pro',
       browserModelLabel: 'Instant',
     });
     expect(config.desiredModel).toBe('Instant');
@@ -87,7 +87,7 @@ describe('buildBrowserConfig', () => {
 
   test('parses remoteChrome host targets', async () => {
     const config = await buildBrowserConfig({
-      model: 'gpt-5-pro',
+      model: 'gpt-5.1-pro',
       remoteChrome: 'remote-host:9333',
     });
     expect(config.remoteChrome).toEqual({ host: 'remote-host', port: 9_333 });
@@ -95,7 +95,7 @@ describe('buildBrowserConfig', () => {
 
   test('accepts IPv6 remoteChrome targets wrapped in brackets', async () => {
     const config = await buildBrowserConfig({
-      model: 'gpt-5-pro',
+      model: 'gpt-5.1-pro',
       remoteChrome: '[2001:db8::1]:9222',
     });
     expect(config.remoteChrome).toEqual({ host: '2001:db8::1', port: 9_222 });
@@ -104,7 +104,7 @@ describe('buildBrowserConfig', () => {
   test('rejects malformed remoteChrome targets', async () => {
     await expect(
       buildBrowserConfig({
-        model: 'gpt-5-pro',
+        model: 'gpt-5.1-pro',
         remoteChrome: 'just-a-host',
       }),
     ).rejects.toThrow(/host:port/i);
@@ -113,7 +113,7 @@ describe('buildBrowserConfig', () => {
   test('rejects remoteChrome IPv6 without brackets', async () => {
     await expect(
       buildBrowserConfig({
-        model: 'gpt-5-pro',
+        model: 'gpt-5.1-pro',
         remoteChrome: '2001:db8::1:9222',
       }),
     ).rejects.toThrow(/Wrap IPv6 addresses/i);
@@ -122,7 +122,7 @@ describe('buildBrowserConfig', () => {
   test('rejects out-of-range remoteChrome ports', async () => {
     await expect(
       buildBrowserConfig({
-        model: 'gpt-5-pro',
+        model: 'gpt-5.1-pro',
         remoteChrome: 'server:70000',
       }),
     ).rejects.toThrow(/between 1 and 65535/i);
@@ -132,7 +132,6 @@ describe('buildBrowserConfig', () => {
 describe('resolveBrowserModelLabel', () => {
   test('returns canonical ChatGPT label when CLI value matches API model', () => {
     expect(resolveBrowserModelLabel('gpt-5.1-pro', 'gpt-5.1-pro')).toBe('GPT-5.1 Pro');
-    expect(resolveBrowserModelLabel('gpt-5-pro', 'gpt-5-pro')).toBe('GPT-5 Pro');
     expect(resolveBrowserModelLabel('GPT-5.1', 'gpt-5.1')).toBe('GPT-5.1');
   });
 
@@ -146,7 +145,6 @@ describe('resolveBrowserModelLabel', () => {
 
   test('supports undefined or whitespace-only input', () => {
     expect(resolveBrowserModelLabel(undefined, 'gpt-5.1-pro')).toBe('GPT-5.1 Pro');
-    expect(resolveBrowserModelLabel(undefined, 'gpt-5-pro')).toBe('GPT-5 Pro');
     expect(resolveBrowserModelLabel('   ', 'gpt-5.1')).toBe('GPT-5.1');
   });
 

@@ -266,7 +266,6 @@ function buildModelMatchersLiteral(targetModel: string): { labelTokens: string[]
     push('proresearch', labelTokens);
     push('research grade', labelTokens);
     push('advanced reasoning', labelTokens);
-    testIdTokens.add('gpt-5-pro');
     if (base.includes('5.1') || base.includes('5-1') || base.includes('51')) {
       testIdTokens.add('gpt-5.1-pro');
       testIdTokens.add('gpt-5-1-pro');
@@ -287,7 +286,7 @@ function buildModelMatchersLiteral(targetModel: string): { labelTokens: string[]
   push(hyphenated, testIdTokens);
   push(collapsed, testIdTokens);
   push(dotless, testIdTokens);
-  // data-testid values observed in the ChatGPT picker (e.g., model-switcher-gpt-5-pro)
+  // data-testid values observed in the ChatGPT picker (e.g., model-switcher-gpt-5.1-pro)
   push(`model-switcher-${hyphenated}`, testIdTokens);
   push(`model-switcher-${collapsed}`, testIdTokens);
   push(`model-switcher-${dotless}`, testIdTokens);
