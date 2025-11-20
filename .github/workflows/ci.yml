@@ -28,5 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run test
+        env:
+          ORACLE_NO_KEYCHAIN: "1"
       - run: pnpm run build
         if: matrix.os == 'ubuntu-latest'

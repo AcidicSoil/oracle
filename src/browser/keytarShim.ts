@@ -2,8 +2,43 @@
  * Runtime shim to broaden Keychain/DPAPI lookups without vendoring chrome-cookies-secure.
  * It tries a list of alternative service/account labels after the original call fails.
  * Configure via ORACLE_KEYCHAIN_LABELS='[{"service":"Microsoft Edge Safe Storage","account":"Microsoft Edge"},...]'
+ *
+ * In CI or headless environments without libsecret/Keychain, set ORACLE_NO_KEYCHAIN=1 to skip
+ * loading `keytar` entirely (calls become no-ops/nulls instead of crashing).
  */
-import keytar from 'keytar';
+import { createRequire } from 'node:module';
+import type * as KeytarModule from 'keytar';
+
+function buildNoopKeytar(): typeof KeytarModule {
+  return {
+    getPassword: async () => null,
+    setPassword: async () => {
+      throw new Error('Keychain disabled via ORACLE_NO_KEYCHAIN');
+    },
+    deletePassword: async () => false,
+    findCredentials: async () => [],
+    findPassword: async () => null,
+  } as unknown as typeof KeytarModule;
+}
+
+const require = createRequire(import.meta.url);
+
+let keytar: typeof KeytarModule;
+if (process.env.ORACLE_NO_KEYCHAIN === '1') {
+  keytar = buildNoopKeytar();
+} else {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    keytar = require('keytar') as typeof KeytarModule;
+  } catch (error) {
+    if (process.env.CI) {
+      // In CI we prefer a soft failure so the suite can continue without keytar.
+      keytar = buildNoopKeytar();
+    } else {
+      throw error;
+    }
+  }
+}
 
 type Label = { service: string; account: string };
 
