@@ -814,6 +814,7 @@ async function runRootCommand(options: CliOptions): Promise<void> {
     browserDeps = {
       executeBrowser: createRemoteBrowserExecutor({ host: remoteHost, token: remoteToken }),
     };
+    console.log(chalk.dim(`Routing browser automation to remote host ${remoteHost}`));
   }
   const remoteExecutionActive = Boolean(browserDeps);
 

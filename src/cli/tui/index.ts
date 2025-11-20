@@ -351,7 +351,6 @@ interface WizardAnswers {
   files: string[];
   chromeProfile?: string;
   chromeCookiePath?: string;
-  headless?: boolean;
   hideWindow?: boolean;
   keepBrowser?: boolean;
   mode?: SessionMode;
@@ -442,13 +441,6 @@ async function askOracleFlow(version: string, userConfig: UserConfig): Promise<v
       when: (ans) => ans.mode === 'browser',
     },
     {
-      name: 'headless',
-      type: 'confirm',
-      message: 'Run Chrome headless?',
-      default: false,
-      when: (ans) => ans.mode === 'browser',
-    },
-    {
       name: 'hideWindow',
       type: 'confirm',
       message: 'Hide Chrome window (macOS headful only)?',
@@ -511,7 +503,6 @@ async function askOracleFlow(version: string, userConfig: UserConfig): Promise<v
       ? await buildBrowserConfig({
           browserChromeProfile: answers.chromeProfile,
           browserCookiePath: answers.chromeCookiePath,
-          browserHeadless: answers.headless,
           browserHideWindow: answers.hideWindow,
           browserKeepBrowser: answers.keepBrowser,
           browserModelLabel: resolveBrowserModelLabel(undefined, answers.model),

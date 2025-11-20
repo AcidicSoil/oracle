@@ -69,7 +69,7 @@ export async function buildBrowserConfig(options: BrowserFlagOptions): Promise<B
     cookieNames,
     inlineCookies: inline?.cookies,
     inlineCookiesSource: inline?.source ?? null,
-    headless: options.browserHeadless ? true : undefined,
+    headless: undefined, // disable headless; Cloudflare blocks it
     keepBrowser: options.browserKeepBrowser ? true : undefined,
     hideWindow: options.browserHideWindow ? true : undefined,
     desiredModel: shouldUseOverride ? desiredModelOverride : mapModelToBrowserLabel(options.model),
