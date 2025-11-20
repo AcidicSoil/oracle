@@ -41,6 +41,7 @@ import type { BrowserSessionRunnerDeps } from '../src/browser/sessionRunner.js';
 import { attachSession, showStatus, formatCompletionSummary } from '../src/cli/sessionDisplay.js';
 import type { ShowStatusOptions } from '../src/cli/sessionDisplay.js';
 import { formatCompactNumber } from '../src/cli/format.js';
+import { formatIntroLine } from '../src/cli/tagline.js';
 import { resolveGeminiModelId } from '../src/oracle/gemini.js';
 import { handleSessionCommand, type StatusOptions, formatSessionCleanupMessage } from '../src/cli/sessionCommand.js';
 import { isErrorLogged } from '../src/cli/errorUtils.js';
@@ -137,6 +138,12 @@ const isTty = process.stdout.isTTY;
 const tuiEnabled = () => isTty && process.env.ORACLE_NO_TUI !== '1';
 
 const program = new Command();
+let introPrinted = false;
+program.hook('preAction', () => {
+  if (introPrinted) return;
+  console.log(formatIntroLine(VERSION, { env: process.env }));
+  introPrinted = true;
+});
 applyHelpStyling(program, VERSION, isTty);
 program.hook('preAction', (thisCommand) => {
   if (thisCommand !== program) {
