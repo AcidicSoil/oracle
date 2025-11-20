@@ -109,4 +109,44 @@ describe('oracle CLI integration', () => {
 
     await rm(oracleHome, { recursive: true, force: true });
   }, 10000);
+
+  test('runs multi-model API sessions and records each model id', async () => {
+    const oracleHome = await mkdtemp(path.join(os.tmpdir(), 'oracle-multi-'));
+    const env = {
+      ...process.env,
+      // biome-ignore lint/style/useNamingConvention: env var name
+      OPENAI_API_KEY: 'sk-integration',
+      // biome-ignore lint/style/useNamingConvention: env var name
+      GEMINI_API_KEY: 'gk-integration',
+      // biome-ignore lint/style/useNamingConvention: env var name
+      ANTHROPIC_API_KEY: 'ak-integration',
+      // biome-ignore lint/style/useNamingConvention: env var name
+      ORACLE_HOME_DIR: oracleHome,
+      // biome-ignore lint/style/useNamingConvention: env var name
+      ORACLE_CLIENT_FACTORY: path.join(process.cwd(), 'tests', 'fixtures', 'mockPolyClient.cjs'),
+      // biome-ignore lint/style/useNamingConvention: env var name
+      ORACLE_NO_DETACH: '1',
+    };
+
+    await execFileAsync(
+      process.execPath,
+      [TSX_BIN, CLI_ENTRY, '--prompt', 'Multi run test prompt long enough', '--models', 'gpt-5.1,gemini-3-pro,claude-4.5-sonnet'],
+      { env },
+    );
+
+    const sessionsDir = path.join(oracleHome, 'sessions');
+    const sessionIds = await readdir(sessionsDir);
+    expect(sessionIds.length).toBe(1);
+    const sessionDir = path.join(sessionsDir, sessionIds[0]);
+    const metadata = JSON.parse(await readFile(path.join(sessionDir, 'meta.json'), 'utf8')) as {
+      models?: { model: string }[];
+      status?: string;
+    };
+    expect(metadata.models?.map((m: { model: string }) => m.model)).toEqual(
+      expect.arrayContaining(['gpt-5.1', 'gemini-3-pro', 'claude-4.5-sonnet']),
+    );
+    expect(metadata.status).toBe('completed');
+
+    await rm(oracleHome, { recursive: true, force: true });
+  }, 15000);
 });
