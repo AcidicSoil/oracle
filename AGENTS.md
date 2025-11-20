@@ -95,9 +95,13 @@ Edit guidance: keep the actual tool list inside this `<tools></tools>` block so 
 - `xcodegen`: Generate Xcode projects from YAML specs; run `xcodegen --help`.
 - `lldb`: To debug native apps, run `lldb` inside tmux and attach to the running app to inspect state interactively.
 - `oracle`: Ask a smart AI to review code and find bugs; you must call `npx -y @steipete/oracle --help` first.
+- Oracle session data lives in `~/.oracle`; clear it if you need a fresh run.
 - `mcporter`: MCP launcher for any registered MCP server; run `npx mcporter`.
 - `iterm`: Full TTY terminal via MCP; run `npx mcporter iterm`.
 - `firecrawl`: MCP-powered site fetcher to Markdown; run `npx mcporter firecrawl`.
 - `XcodeBuildMCP`: MCP wrapper around Xcode tooling; run `npx mcporter XcodeBuildMCP`.
 - `gh`: GitHub CLI for PRs, CI logs, releases, repo queries; run `gh help`.
 </tools>
+
+# Oracle Repo Notes
+- oracle stores session data in `~/.oracle`.
