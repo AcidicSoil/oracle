@@ -51,7 +51,7 @@ npx -y @steipete/oracle
   ```
 
 **MCP**
-- Run the stdio server via `oracle-mcp`.
+- Run the stdio server via `oracle-mcp` (install globally for quiet stdio).
 - Configure clients via `config/mcporter.json` or `.mcp.json`; see [docs/mcp.md](docs/mcp.md) for connection examples and scope options.
 ```bash
 npx -y @steipete/oracle oracle-mcp
@@ -62,10 +62,15 @@ npx -y @steipete/oracle oracle-mcp
 ```json
 {
   "oracle": {
-    "command": "npx",
-    "args": ["-y", "@steipete/oracle", "oracle-mcp"]
+    "command": "oracle-mcp",
+    "args": []
   }
 }
+```
+- If you must use `npx`, silence npm so stdout stays JSON-only:
+```bash
+NPM_CONFIG_AUDIT=false NPM_CONFIG_FUND=false NPM_CONFIG_UPDATE_NOTIFIER=false NPM_CONFIG_LOGLEVEL=silent \
+  npx -y @steipete/oracle oracle-mcp
 ```
 
 ## Highlights
