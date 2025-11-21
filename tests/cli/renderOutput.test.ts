@@ -27,7 +27,7 @@ describe('formatRenderedMarkdown', () => {
   });
 
   test('falls back to raw markdown when renderer throws', async () => {
-    (renderMarkdownAnsi as unknown as jest.Mock).mockImplementationOnce(() => {
+    vi.mocked(renderMarkdownAnsi).mockImplementationOnce(() => {
       throw new Error('boom');
     });
     const out = await formatRenderedMarkdown('**boom**', { richTty: true });
