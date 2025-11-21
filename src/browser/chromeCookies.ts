@@ -2,7 +2,11 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import crypto from 'node:crypto';
+import sqlite3 from 'sqlite3';
 import chromeCookies from 'chrome-cookies-secure';
+// @ts-expect-error no types published
+import dpapi from 'win-dpapi';
 import { COOKIE_URLS } from './constants.js';
 import type { CookieParam } from './types.js';
 import './keytarShim.js';
@@ -31,6 +35,31 @@ export async function loadChromeCookies({
   const merged = new Map<string, CookieParam>();
   const cookieFile = await resolveCookieFilePath({ explicitPath: explicitCookiePath, profile });
   const cookiesPath = await materializeCookieFile(cookieFile);
+  if (process.env.ORACLE_DEBUG_COOKIES === '1') {
+    // Debug helper: surface which cookie DB path we attempt to read.
+    // eslint-disable-next-line no-console
+    console.log(`[cookies] resolved cookie path: ${cookiesPath}`);
+  }
+
+  // Windows: chrome-cookies-secure sometimes returns empty values for modern AES-GCM cookies.
+  // Try native decrypt first; fall back to the cross-platform helper if it fails.
+  if (process.platform === 'win32') {
+    try {
+      const winCookies = await loadWindowsCookies(cookiesPath, filterNames);
+      if (winCookies.length) {
+        for (const cookie of winCookies) {
+          const key = `${cookie.domain}:${cookie.name}`;
+          merged.set(key, cookie);
+        }
+        return Array.from(merged.values());
+      }
+    } catch (error) {
+      if (process.env.ORACLE_DEBUG_COOKIES === '1') {
+        // eslint-disable-next-line no-console
+        console.log(`[cookies] windows decrypt failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
 
   await ensureMacKeychainReadable();
 
@@ -243,6 +272,106 @@ async function resolveDirectoryCandidate(inputPath: string): Promise<string> {
   if (await fileExists(network)) return network;
   if (await fileExists(direct)) return direct;
   return inputPath;
+}
+
+async function loadWindowsCookies(dbPath: string, filterNames?: Set<string>): Promise<CookieParam[]> {
+  const localState = await locateLocalState();
+  const aesKey = await extractWindowsAesKey(localState);
+  const rows = await readChromeCookiesDb(dbPath, filterNames);
+  const cookies: CookieParam[] = [];
+  for (const row of rows) {
+    const valueBuf: Buffer =
+      row.encrypted_value && row.encrypted_value.length > 0
+        ? row.encrypted_value
+        : Buffer.from(row.value ?? '', 'utf8');
+    const decrypted = valueBuf.length > 0 ? decryptCookie(valueBuf, aesKey) : '';
+    cookies.push({
+      name: row.name,
+      value: cleanValue(decrypted),
+      domain: row.host_key?.startsWith('.') ? row.host_key.slice(1) : row.host_key,
+      path: row.path ?? '/',
+      expires: normalizeExpiration(row.expires_utc),
+      secure: Boolean(row.is_secure),
+      httpOnly: Boolean(row.is_httponly),
+    });
+  }
+  return cookies.filter((c) => c.value);
+}
+
+async function locateLocalState(): Promise<string> {
+  const localState = path.join(os.homedir(), 'AppData', 'Local', 'Google', 'Chrome', 'User Data', 'Local State');
+  const exists = await fileExists(localState);
+  if (!exists) throw new Error('Chrome Local State not found for AES key');
+  return localState;
+}
+
+async function extractWindowsAesKey(localStatePath: string): Promise<Buffer> {
+  const raw = await fs.readFile(localStatePath, 'utf8');
+  const state = JSON.parse(raw);
+  const encKeyB64: string | undefined = state?.os_crypt?.encrypted_key;
+  if (!encKeyB64) throw new Error('encrypted_key missing in Local State');
+  const encKey = Buffer.from(encKeyB64, 'base64');
+  const dpapiBlob = encKey.slice(5); // strip "DPAPI"
+  const unprotected: Buffer = dpapi.unprotectData(dpapiBlob, null, 'CurrentUser');
+  return Buffer.from(unprotected);
+}
+
+function decryptCookie(value: Buffer, aesKey: Buffer): string {
+  const prefix = value.slice(0, 3).toString();
+  if (prefix === 'v10' || prefix === 'v11') {
+    const iv = value.slice(3, 15);
+    const tag = value.slice(value.length - 16);
+    const data = value.slice(15, value.length - 16);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', aesKey, iv);
+    decipher.setAuthTag(tag);
+    const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
+    return decrypted.toString('utf8');
+  }
+  // Legacy DPAPI blob
+  const unprotected: Buffer = dpapi.unprotectData(value, null, 'CurrentUser');
+  return Buffer.from(unprotected).toString('utf8');
+}
+
+type RawCookieRow = {
+  name: string;
+  value: string;
+  encrypted_value: Buffer;
+  host_key: string;
+  path: string;
+  expires_utc: number;
+  is_secure: number;
+  is_httponly: number;
+};
+
+async function readChromeCookiesDb(dbPath: string, filterNames?: Set<string>): Promise<RawCookieRow[]> {
+  const db = await openSqlite(dbPath);
+  const placeholders =
+    filterNames && filterNames.size > 0 ? `AND name IN (${Array.from(filterNames).map(() => '?').join(',')})` : '';
+  const params = filterNames ? Array.from(filterNames) : [];
+  const sql = `SELECT name,value,encrypted_value,host_key,path,expires_utc,is_secure,is_httponly FROM cookies WHERE host_key LIKE '%chatgpt.com%' ${placeholders}`;
+  try {
+    return await allSqlite<RawCookieRow>(db, sql, params);
+  } finally {
+    db.close();
+  }
+}
+
+function openSqlite(dbPath: string): Promise<sqlite3.Database> {
+  return new Promise((resolve, reject) => {
+    const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
+      if (err) reject(err);
+      else resolve(db);
+    });
+  });
+}
+
+function allSqlite<T>(db: sqlite3.Database, sql: string, params: unknown[]): Promise<T[]> {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve((rows ?? []) as T[]);
+    });
+  });
 }
 
 async function defaultProfileRoot(): Promise<string> {
