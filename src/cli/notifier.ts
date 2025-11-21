@@ -296,6 +296,8 @@ async function repairMacBadCpu(log: (message: string) => void): Promise<boolean>
   if (!binPath) return false;
   const appDir = path.dirname(path.dirname(path.dirname(binPath)));
   try {
+    // macOS returns errno -86 (“Bad CPU type in executable”) when a quarantined/not-notarized
+    // helper binary is blocked. Attempt to strip quarantine and re-chmod the helper automatically.
     await runXattrStrip(appDir);
     await runXattrStrip(binPath);
     await fs.chmod(binPath, 0o755);
