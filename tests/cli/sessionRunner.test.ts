@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import { beforeAll, afterAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
 vi.mock('../../src/oracle.ts', async () => {
@@ -322,6 +326,142 @@ describe('performSessionRun', () => {
     const logsCombined = logSpy.mock.calls.map((c) => c[0]).join('\n');
     expect(logsCombined).toContain('Calling gpt-5.1, gemini-3-pro');
     expect(logsCombined).toContain('1/2 models');
+
+    writeSpy.mockRestore();
+    logSpy.mockRestore();
+    if (originalTty === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (process.stdout as { isTTY?: boolean }).isTTY;
+    } else {
+      (process.stdout as { isTTY?: boolean }).isTTY = originalTty;
+    }
+  });
+
+  test('prints tips before the first model heading in multi-model TTY streaming', async () => {
+    const sessionMeta = {
+      ...baseSessionMeta,
+      models: [
+        { model: 'gpt-5.1', status: 'running' } as SessionModelRun,
+        { model: 'gemini-3-pro', status: 'running' } as SessionModelRun,
+      ],
+    } as SessionMetadata;
+
+    sessionStoreMock.readSession.mockResolvedValue(sessionMeta);
+    sessionStoreMock.readModelLog.mockImplementation(async (_sessionId: string, model: string) => `Answer for ${model}`);
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true as unknown as boolean);
+    const originalTty = (process.stdout as { isTTY?: boolean }).isTTY;
+    (process.stdout as { isTTY?: boolean }).isTTY = true;
+
+    const summary: MultiModelRunSummary = {
+      fulfilled: [
+        {
+          model: 'gpt-5.1' as ModelName,
+          usage: { inputTokens: 1, outputTokens: 1, reasoningTokens: 0, totalTokens: 2, cost: 0 },
+          answerText: 'ans-gpt',
+          logPath: 'log-gpt',
+        },
+      ],
+      rejected: [],
+      elapsedMs: 321,
+    };
+    vi.mocked(runMultiModelApiSession).mockImplementation(async (params) => {
+      if (params.onModelDone) {
+        for (const entry of summary.fulfilled) {
+          await params.onModelDone(entry);
+        }
+      }
+      return summary;
+    });
+
+    await performSessionRun({
+      sessionMeta,
+      runOptions: { ...baseRunOptions, models: ['gpt-5.1', 'gemini-3-pro'], prompt: 'short' },
+      mode: 'api',
+      cwd: '/tmp',
+      log: logSpy,
+      write: writeSpy,
+      version: cliVersion,
+    });
+
+    const logMessages = logSpy.mock.calls.map((c) => c[0]);
+    const tipIndex = logMessages.findIndex((line) => typeof line === 'string' && line.includes('Tip: no files attached'));
+    const headingIndex = logMessages.findIndex((line) => typeof line === 'string' && line.includes('[gpt-5.1]'));
+    expect(tipIndex).toBeGreaterThan(-1);
+    expect(headingIndex).toBeGreaterThan(-1);
+    expect(tipIndex).toBeLessThan(headingIndex);
+
+    writeSpy.mockRestore();
+    logSpy.mockRestore();
+    if (originalTty === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (process.stdout as { isTTY?: boolean }).isTTY;
+    } else {
+      (process.stdout as { isTTY?: boolean }).isTTY = originalTty;
+    }
+  });
+
+  test('omits tips when files are attached and prompt is long', async () => {
+    const sessionMeta = {
+      ...baseSessionMeta,
+      models: [
+        { model: 'gpt-5.1', status: 'running' } as SessionModelRun,
+        { model: 'gemini-3-pro', status: 'running' } as SessionModelRun,
+      ],
+    } as SessionMetadata;
+
+    sessionStoreMock.readSession.mockResolvedValue(sessionMeta);
+    sessionStoreMock.readModelLog.mockResolvedValue('Answer:\nfrom model');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true as unknown as boolean);
+    const originalTty = (process.stdout as { isTTY?: boolean }).isTTY;
+    (process.stdout as { isTTY?: boolean }).isTTY = false;
+
+    const tmpDir = os.tmpdir();
+    const tmpFile = path.join(tmpDir, 'oracle-tip.txt');
+    fs.writeFileSync(tmpFile, 'content');
+
+    const summary: MultiModelRunSummary = {
+      fulfilled: [
+        {
+          model: 'gpt-5.1' as ModelName,
+          usage: { inputTokens: 1, outputTokens: 1, reasoningTokens: 0, totalTokens: 2, cost: 0 },
+          answerText: 'ans-gpt',
+          logPath: 'log-gpt',
+        },
+        {
+          model: 'gemini-3-pro' as ModelName,
+          usage: { inputTokens: 1, outputTokens: 1, reasoningTokens: 0, totalTokens: 2, cost: 0 },
+          answerText: 'ans-gem',
+          logPath: 'log-gemini',
+        },
+      ],
+      rejected: [],
+      elapsedMs: 999,
+    };
+    vi.mocked(runMultiModelApiSession).mockResolvedValue(summary);
+
+    await performSessionRun({
+      sessionMeta,
+      runOptions: {
+        ...baseRunOptions,
+        prompt: 'a'.repeat(100),
+        file: [tmpFile],
+        models: ['gpt-5.1', 'gemini-3-pro'],
+      },
+      mode: 'api',
+      cwd: tmpDir,
+      log: logSpy,
+      write: writeSpy,
+      version: cliVersion,
+    });
+
+    const logsCombined = logSpy.mock.calls.map((c) => c[0]).join('\n');
+    expect(logsCombined).toContain('Calling gpt-5.1, gemini-3-pro');
+    expect(logsCombined).not.toContain('Tip: no files attached');
+    expect(logsCombined).not.toContain('Tip: brief prompts often yield generic answers');
 
     writeSpy.mockRestore();
     logSpy.mockRestore();
