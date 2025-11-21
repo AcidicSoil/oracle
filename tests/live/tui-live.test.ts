@@ -11,7 +11,8 @@ liveDescribe('live TUI flow (API multi-model)', () => {
   it(
     'runs ask-oracle via TUI, selects an extra model, and writes a session',
     async () => {
-      const { output, exitCode, homeDir } = await runOracleTuiWithPty({
+      const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'oracle-tui-live-'));
+      const { output, exitCode, homeDir: usedHome } = await runOracleTuiWithPty({
         steps: [
           { match: 'Paste your prompt text', write: 'Live TUI multi-model smoke\n' },
           { match: 'Engine', write: '\r' }, // accept default API
@@ -21,14 +22,14 @@ liveDescribe('live TUI flow (API multi-model)', () => {
           { match: 'Additional API models', write: '\u001b[B \r' },
           { match: 'Files or globs to attach', write: '\r' }, // none
         ],
+        homeDir,
         env: {
-          ORACLE_HOME_DIR: await fs.mkdtemp(path.join(os.tmpdir(), 'oracle-tui-live-')),
           FORCE_COLOR: '0',
           CI: '',
         },
       });
 
-      const sessionsDir = path.join(process.env.ORACLE_HOME_DIR ?? '', 'sessions');
+      const sessionsDir = path.join(usedHome, 'sessions');
       const entries = await fs.readdir(sessionsDir);
       expect(entries.length).toBeGreaterThan(0);
       const newest = entries.sort().pop() as string;
@@ -36,8 +37,7 @@ liveDescribe('live TUI flow (API multi-model)', () => {
         options?: { models?: string[] };
       };
 
-      await fs.rm(process.env.ORACLE_HOME_DIR ?? '', { recursive: true, force: true }).catch(() => {});
-      await fs.rm(homeDir, { recursive: true, force: true }).catch(() => {});
+      await fs.rm(usedHome, { recursive: true, force: true }).catch(() => {});
 
       expect(exitCode).toBe(0);
       expect(meta.options?.models?.length ?? 1).toBeGreaterThan(1);
