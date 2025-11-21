@@ -206,6 +206,132 @@ describe('performSessionRun', () => {
     }
   });
 
+  test('prints one aggregate header and colored summary for multi-model runs', async () => {
+    const sessionMeta = {
+      ...baseSessionMeta,
+      models: [
+        { model: 'gpt-5.1', status: 'running' },
+        { model: 'gemini-3-pro', status: 'running' },
+      ],
+    } as SessionMetadata;
+
+    sessionStoreMock.readSession.mockResolvedValue(sessionMeta);
+    sessionStoreMock.readModelLog.mockResolvedValue('Answer:\nfrom model');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true as unknown as boolean);
+    const originalTty = (process.stdout as { isTTY?: boolean }).isTTY;
+    (process.stdout as { isTTY?: boolean }).isTTY = true;
+
+    vi.mocked(runMultiModelApiSession).mockImplementation(async (params) => {
+      const fulfilled = [
+        {
+          model: 'gpt-5.1',
+          usage: { inputTokens: 10, outputTokens: 20, reasoningTokens: 0, totalTokens: 30, cost: 0.01 },
+          answerText: 'ans-gpt',
+          logPath: 'log-gpt',
+        },
+        {
+          model: 'gemini-3-pro',
+          usage: { inputTokens: 5, outputTokens: 5, reasoningTokens: 0, totalTokens: 10, cost: 0.02 },
+          answerText: 'ans-gemini',
+          logPath: 'log-gemini',
+        },
+      ];
+      if (params.onModelDone) {
+        for (const entry of fulfilled) {
+          await params.onModelDone(entry);
+        }
+      }
+      return { fulfilled, rejected: [], elapsedMs: 1234 };
+    });
+
+    await performSessionRun({
+      sessionMeta,
+      runOptions: { ...baseRunOptions, models: ['gpt-5.1', 'gemini-3-pro'] },
+      mode: 'api',
+      cwd: '/tmp',
+      log: logSpy,
+      write: writeSpy,
+      version: cliVersion,
+    });
+
+    const logsCombined = logSpy.mock.calls.map((c) => c[0]).join('\n');
+    expect(logsCombined).toContain('Calling gpt-5.1, gemini-3-pro');
+    expect((logsCombined.match(/Calling gpt-5.1/g) ?? []).length).toBe(1);
+    const stripped = logsCombined.replace(/\u001b\[[0-9;]*m/g, '');
+    expect(stripped).toContain('Finished in');
+    expect(stripped).toContain('2/2 models');
+
+    writeSpy.mockRestore();
+    logSpy.mockRestore();
+    if (originalTty === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (process.stdout as { isTTY?: boolean }).isTTY;
+    } else {
+      (process.stdout as { isTTY?: boolean }).isTTY = originalTty;
+    }
+  });
+
+  test('uses warning color when some models fail', async () => {
+    const sessionMeta = {
+      ...baseSessionMeta,
+      models: [
+        { model: 'gpt-5.1', status: 'running' },
+        { model: 'gemini-3-pro', status: 'running' },
+      ],
+    } as SessionMetadata;
+
+    sessionStoreMock.readSession.mockResolvedValue(sessionMeta);
+    sessionStoreMock.readModelLog.mockResolvedValue('Answer:\npartial');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true as unknown as boolean);
+    const originalTty = (process.stdout as { isTTY?: boolean }).isTTY;
+    (process.stdout as { isTTY?: boolean }).isTTY = true;
+
+    vi.mocked(runMultiModelApiSession).mockImplementation(async (params) => {
+      const fulfilled = [
+        {
+          model: 'gpt-5.1',
+          usage: { inputTokens: 1, outputTokens: 1, reasoningTokens: 0, totalTokens: 2, cost: 0 },
+          answerText: 'ok',
+          logPath: 'log-ok',
+        },
+      ];
+      const rejected = [{ model: 'gemini-3-pro', reason: new Error('boom') }];
+      if (params.onModelDone) {
+        await params.onModelDone(fulfilled[0]!);
+      }
+      return { fulfilled, rejected, elapsedMs: 500 };
+    });
+
+    await expect(
+      performSessionRun({
+        sessionMeta,
+        runOptions: { ...baseRunOptions, models: ['gpt-5.1', 'gemini-3-pro'] },
+        mode: 'api',
+        cwd: '/tmp',
+        log: logSpy,
+        write: writeSpy,
+        version: cliVersion,
+      }),
+    ).rejects.toThrow('boom');
+
+    const logsCombined = logSpy.mock.calls.map((c) => c[0]).join('\n');
+    expect(logsCombined).toContain('Calling gpt-5.1, gemini-3-pro');
+    expect(logsCombined).toContain('1/2 models');
+
+    writeSpy.mockRestore();
+    logSpy.mockRestore();
+    if (originalTty === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (process.stdout as { isTTY?: boolean }).isTTY;
+    } else {
+      (process.stdout as { isTTY?: boolean }).isTTY = originalTty;
+    }
+  });
+
   test('invokes browser runner when mode is browser', async () => {
     vi.mocked(runBrowserSessionExecution).mockResolvedValue({
       usage: { inputTokens: 100, outputTokens: 50, reasoningTokens: 0, totalTokens: 150 },
