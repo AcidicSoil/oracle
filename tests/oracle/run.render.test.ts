@@ -82,6 +82,11 @@ describe('runOracle streaming rendering', () => {
   it('streams raw text immediately when --render-plain is used', async () => {
     const { runOracle, restore } = await loadRunOracleWithTty(true);
     const sink: string[] = [];
+    const stdoutSink: string[] = [];
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: string | Uint8Array) => {
+      stdoutSink.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write);
 
     await runOracle({ ...baseOptions, renderPlain: true }, {
       clientFactory: makeStreamingClient('# Title\n- item'),
@@ -93,8 +98,11 @@ describe('runOracle streaming rendering', () => {
     });
 
     const output = sink.join('');
+    const rendered = stdoutSink.join('');
     expect(output).toContain('# Title');
-    expect(output).not.toContain('\u001b[');
+    expect(rendered).toContain('# Title');
+    expect(rendered).not.toContain('\u001b[');
+    stdoutSpy.mockRestore();
     restore();
   });
 });

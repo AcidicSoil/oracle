@@ -62,6 +62,7 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
   } = deps;
   const writingToStdout = deps.write === undefined;
   const stdoutWrite = process.stdout.write.bind(process.stdout);
+  const write = sinkWrite;
   const baseUrl = options.baseUrl?.trim() || process.env.OPENAI_BASE_URL?.trim();
 
   const logVerbose = (message: string): void => {
@@ -287,7 +288,7 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
     label: useBackground ? 'Waiting for API (background)' : 'Waiting for API',
     targetMs: useBackground ? timeoutMs : Math.min(timeoutMs, 10 * 60_000),
     indeterminate: true,
-    write,
+    write: sinkWrite,
   });
 
   const runStart = now();
@@ -420,7 +421,7 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
       log('');
     }
     // Keep the write sink aligned with stdout by adding a trailing break after streamed content.
-    write('\n\n');
+    sinkWrite('\n\n');
   }
 
   logVerbose(`Response status: ${response.status ?? 'completed'}`);
@@ -467,9 +468,9 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
           ? answerText
           : renderMarkdownAnsi(answerText)
         : chalk.dim('(no text output)');
-      write(printable);
+      sinkWrite(printable);
       if (!printable.endsWith('\n')) {
-        write('\n');
+        sinkWrite('\n');
       }
       log('');
     }
