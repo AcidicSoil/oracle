@@ -117,6 +117,10 @@ Put defaults in `~/.oracle/config.json` (JSON5). Example:
 ```
 See [docs/configuration.md](docs/configuration.md) for precedence and full schema.
 
+Advanced flags
+- Browser: `--browser-timeout`, `--browser-input-timeout`, `--browser-inline-cookies[(-file)]`, `--browser-inline-files`, `--browser-bundle-files`, `--browser-keep-browser`, `--browser-headless`, `--browser-hide-window`, `--browser-no-cookie-sync`, `--browser-allow-cookie-errors`, `--browser-chrome-path`, `--browser-cookie-path`, `--chatgpt-url`.
+- Azure/OpenAI compatibility: `--azure-endpoint`, `--azure-deployment`, `--azure-api-version`, `--base-url`.
+
 ## More docs
 - Browser mode & forks: [docs/browser-mode.md](docs/browser-mode.md) (includes `oracle serve` remote service), [docs/chromium-forks.md](docs/chromium-forks.md), [docs/linux.md](docs/linux.md)
 - MCP: [docs/mcp.md](docs/mcp.md)
