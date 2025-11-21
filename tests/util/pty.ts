@@ -43,12 +43,14 @@ export async function runOracleTuiWithPty({
   cols = 100,
   rows = 40,
   homeDir,
+  killAfterMs,
 }: {
   steps: PtyStep[];
   env?: Record<string, string | undefined>;
   cols?: number;
   rows?: number;
   homeDir?: string;
+  killAfterMs?: number;
 }): Promise<RunPtyResult> {
   if (!pty) {
     throw new Error('PTY module not available');
@@ -80,6 +82,16 @@ export async function runOracleTuiWithPty({
 
   let output = '';
   const pending = [...steps];
+  const killTimer =
+    typeof killAfterMs === 'number' && killAfterMs > 0
+      ? setTimeout(() => {
+          try {
+            ps.kill();
+          } catch {
+            // ignore
+          }
+        }, killAfterMs)
+      : null;
 
   ps.onData((data: string) => {
     output += data;
@@ -101,6 +113,10 @@ export async function runOracleTuiWithPty({
   const exit = await new Promise<{ exitCode: number | null; signal: number | null }>((resolve) => {
     ps.onExit((evt: { exitCode: number | null; signal: number | null }) => resolve(evt));
   });
+
+  if (killTimer) {
+    clearTimeout(killTimer);
+  }
 
   return { output, ...exit, homeDir: home };
 }
