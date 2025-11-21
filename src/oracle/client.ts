@@ -65,7 +65,21 @@ function loadCustomClientFactory(): ClientFactory | null {
   }
 
   if (override === 'INLINE_TEST_FACTORY') {
-    return () => () => ({ responses: { create: () => 'ok' }, __custom: true } as unknown as ClientLike);
+    return () =>
+      ({
+        responses: {
+          create: async () => ({ id: 'inline-test', status: 'completed' }),
+          stream: async () => ({
+            [Symbol.asyncIterator]: () => ({
+              async next() {
+                return { done: true, value: undefined };
+              },
+            }),
+            finalResponse: async () => ({ id: 'inline-test', status: 'completed' }),
+          }),
+          retrieve: async (id: string) => ({ id, status: 'completed' }),
+        },
+      } as unknown as ClientLike);
   }
   try {
     const require = createRequire(import.meta.url);

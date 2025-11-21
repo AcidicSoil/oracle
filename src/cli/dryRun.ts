@@ -14,6 +14,7 @@ import { assembleBrowserPrompt, type BrowserPromptArtifacts } from '../browser/p
 import type { BrowserAttachment } from '../browser/types.js';
 import type { BrowserSessionConfig } from '../sessionStore.js';
 import { buildTokenEstimateSuffix, formatAttachmentLabel } from '../browser/promptSummary.js';
+import { buildCookiePlan } from '../browser/policies.js';
 
 interface DryRunDeps {
   readFilesImpl?: typeof readFiles;
@@ -118,17 +119,8 @@ function logBrowserCookieStrategy(
   label: string,
 ) {
   if (!browserConfig) return;
-  if (browserConfig.inlineCookies && browserConfig.inlineCookies.length > 0) {
-    const source = browserConfig.inlineCookiesSource ?? 'inline';
-    log(chalk.bold(`[${label}] Cookies: inline payload (${browserConfig.inlineCookies.length}) via ${source}.`));
-    return;
-  }
-  if (browserConfig.cookieSync === false) {
-    log(chalk.bold(`[${label}] Cookies: sync disabled (--browser-no-cookie-sync).`));
-    return;
-  }
-  const allowlist = browserConfig.cookieNames?.length ? browserConfig.cookieNames.join(', ') : 'all from Chrome profile';
-  log(chalk.bold(`[${label}] Cookies: copy from Chrome (${allowlist}).`));
+  const plan = buildCookiePlan(browserConfig);
+  log(chalk.bold(`[${label}] ${plan.description}`));
 }
 
 function logBrowserFileSummary(artifacts: BrowserPromptArtifacts, log: (message: string) => void, label: string) {

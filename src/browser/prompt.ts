@@ -11,6 +11,7 @@ import {
 } from '../oracle.js';
 import { buildPromptMarkdown } from '../oracle/promptAssembly.js';
 import type { BrowserAttachment } from './types.js';
+import { buildAttachmentPlan } from './policies.js';
 
 export interface BrowserPromptArtifacts {
   markdown: string;
@@ -41,34 +42,22 @@ export async function assembleBrowserPrompt(
   const markdown = buildPromptMarkdown(systemPrompt, userPrompt, sections);
   const inlineFiles = Boolean(runOptions.browserInlineFiles);
   const composerSections: string[] = [];
-  if (systemPrompt) {
-    composerSections.push(systemPrompt);
-  }
-  if (userPrompt) {
-    composerSections.push(userPrompt);
-  }
-  let inlineBlock = '';
-  if (inlineFiles && sections.length > 0) {
-    const inlineLines: string[] = [];
-    sections.forEach((section) => {
-      inlineLines.push(formatFileSection(section.displayPath, section.content).trimEnd(), '');
-    });
-    inlineBlock = inlineLines.join('\n').trim();
-    if (inlineBlock.length > 0) {
-      composerSections.push(inlineBlock);
-    }
-  }
-  const composerText = composerSections.join('\n\n').trim();
-  const attachments: BrowserAttachment[] = inlineFiles
-    ? []
-    : sections.map((section) => ({
-        path: section.absolutePath,
-        displayPath: section.displayPath,
-        sizeBytes: Buffer.byteLength(section.content, 'utf8'),
-      }));
+  if (systemPrompt) composerSections.push(systemPrompt);
+  if (userPrompt) composerSections.push(userPrompt);
 
-  const MAX_BROWSER_ATTACHMENTS = 10;
-  const shouldBundle = !inlineFiles && (runOptions.browserBundleFiles || attachments.length > MAX_BROWSER_ATTACHMENTS);
+  const attachmentPlan = buildAttachmentPlan(sections, {
+    inlineFiles,
+    bundleRequested: Boolean(runOptions.browserBundleFiles),
+  });
+
+  if (attachmentPlan.inlineBlock) {
+    composerSections.push(attachmentPlan.inlineBlock);
+  }
+
+  const composerText = composerSections.join('\n\n').trim();
+  const attachments: BrowserAttachment[] = attachmentPlan.attachments.slice();
+
+  const shouldBundle = attachmentPlan.shouldBundle;
   let bundleText: string | null = null;
   if (shouldBundle) {
     const bundleDir = await fs.mkdtemp(path.join(os.tmpdir(), 'oracle-browser-bundle-'));
@@ -87,11 +76,11 @@ export async function assembleBrowserPrompt(
       sizeBytes: Buffer.byteLength(bundleText, 'utf8'),
     });
   }
-  const inlineFileCount = inlineFiles ? sections.length : 0;
+  const inlineFileCount = attachmentPlan.inlineFileCount;
   const tokenizer = MODEL_CONFIGS[runOptions.model].tokenizer;
   const tokenizerUserContent =
-    inlineFileCount > 0 && inlineBlock
-      ? [userPrompt, inlineBlock].filter((value) => Boolean(value?.trim())).join('\n\n').trim()
+    inlineFileCount > 0 && attachmentPlan.inlineBlock
+      ? [userPrompt, attachmentPlan.inlineBlock].filter((value) => Boolean(value?.trim())).join('\n\n').trim()
       : userPrompt;
   const tokenizerMessages = [
     systemPrompt ? { role: 'system', content: systemPrompt } : null,
@@ -103,7 +92,7 @@ export async function assembleBrowserPrompt(
       : [{ role: 'user', content: '' }],
     TOKENIZER_OPTIONS,
   );
-  const tokenEstimateIncludesInlineFiles = inlineFileCount > 0 && Boolean(inlineBlock);
+  const tokenEstimateIncludesInlineFiles = inlineFileCount > 0 && Boolean(attachmentPlan.inlineBlock);
   if (!tokenEstimateIncludesInlineFiles && sections.length > 0) {
     const attachmentText =
       bundleText ??

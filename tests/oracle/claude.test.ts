@@ -3,6 +3,8 @@ import { createClaudeClient, resolveClaudeModelId } from '../../src/oracle/claud
 import type { OracleRequestBody } from '../../src/oracle/types.js';
 
 const mockBody: OracleRequestBody = {
+  model: 'claude-4.1-opus',
+  instructions: 'respond helpfully',
   input: [
     {
       role: 'user',
@@ -41,4 +43,3 @@ describe('claude client', () => {
     expect(resp.usage?.total_tokens).toBe(3);
   });
 });
-

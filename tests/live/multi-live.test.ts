@@ -1,4 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 import { runMultiModelApiSession } from '../../src/oracle/multiModelRunner.js';
 import { sessionStore } from '../../src/sessionStore.js';
 import type { ModelName } from '../../src/oracle.js';
@@ -6,6 +11,9 @@ import type { ModelName } from '../../src/oracle.js';
 const live = process.env.ORACLE_LIVE_TEST === '1';
 const hasKeys =
   Boolean(process.env.OPENAI_API_KEY) && Boolean(process.env.GEMINI_API_KEY) && Boolean(process.env.ANTHROPIC_API_KEY);
+const execFileAsync = promisify(execFile);
+const TSX_BIN = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+const CLI_ENTRY = path.join(process.cwd(), 'bin', 'oracle-cli.ts');
 
 (live ? describe : describe.skip)('Multi-model live smoke (GPT + Gemini + Claude)', () => {
   if (!hasKeys) {
@@ -38,5 +46,49 @@ const hasKeys =
       });
     },
     180_000,
+  );
+
+  it(
+    'accepts shorthand models end-to-end via CLI',
+    async () => {
+      const oracleHome = await mkdtemp(path.join(os.tmpdir(), 'oracle-live-multi-shorthand-'));
+      const env = {
+        ...process.env,
+        // biome-ignore lint/style/useNamingConvention: env var name
+        ORACLE_HOME_DIR: oracleHome,
+        // biome-ignore lint/style/useNamingConvention: env var name
+        ORACLE_NO_DETACH: '1',
+      };
+
+      await execFileAsync(
+        process.execPath,
+        [
+          TSX_BIN,
+          CLI_ENTRY,
+          '--prompt',
+          'Live shorthand multi-model prompt for cross-checking this design end-to-end.',
+          '--models',
+          'gpt-5.1,gemini,sonnet',
+          '--wait',
+        ],
+        { env },
+      );
+
+      const sessionsDir = path.join(oracleHome, 'sessions');
+      const sessionIds = await readdir(sessionsDir);
+      expect(sessionIds.length).toBe(1);
+      const sessionDir = path.join(sessionsDir, sessionIds[0]);
+      const metadata = JSON.parse(await readFile(path.join(sessionDir, 'meta.json'), 'utf8'));
+      const selectedModels = (metadata.models as Array<{ model: string }> | undefined)?.map(
+        (m: { model: string }) => m.model,
+      );
+      expect(selectedModels).toEqual(
+        expect.arrayContaining(['gpt-5.1', 'gemini-3-pro', 'claude-4.5-sonnet']),
+      );
+      expect(metadata.status).toBe('completed');
+
+      await rm(oracleHome, { recursive: true, force: true });
+    },
+    600_000,
   );
 });

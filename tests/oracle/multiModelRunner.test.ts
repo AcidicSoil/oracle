@@ -18,6 +18,7 @@ const successResult = (model: ModelName): RunOracleResult => ({
     status: 'completed',
     usage: {},
     output: [{ type: 'text', text: `answer-${model}` }],
+    // biome-ignore lint/style/useNamingConvention: field mirrors upstream response shape
     _request_id: `req-${model}`,
   },
 });
