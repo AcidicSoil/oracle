@@ -32,6 +32,17 @@ Run this whenever you touch the session store, CLI session views, or TUI wiring 
 4. Model filter path: `oracle session <id> --model gemini-3-pro`  
    - Attach mode should error if that model is missing (double-check by filtering for a bogus model), otherwise it should render the prompt + single-model log only.
 
+### Write-output export (API)
+
+Run this when touching session serialization, file IO helpers, or CLI flag plumbing.
+
+1. `ORACLE_LIVE_TEST=1 OPENAI_API_KEY=<real key> pnpm vitest run tests/live/write-output-live.test.ts --runInBand`
+   - Expect the test to create a temp `write-output-live.md` file containing `write-output e2e`.
+2. Manual spot-check: `oracle --prompt "answer file smoke" --write-output /tmp/out.md --wait`
+   - Confirm `/tmp/out.md` exists with the answer text and a trailing newline.
+3. Multi-model spot-check: `oracle --models "gpt-5.1-pro,gemini-3-pro" --prompt "two files" --write-output /tmp/out.md --wait`
+   - Confirm `/tmp/out.gpt-5.1-pro.md` and `/tmp/out.gemini-3-pro.md` exist with distinct content.
+
 ### Lightweight Browser CLI (manual exploration)
 
 Before running any agent-driven debugging, you can rely on the TypeScript CLI in `scripts/browser-tools.ts`:

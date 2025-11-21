@@ -115,6 +115,7 @@ Put per-user defaults in `~/.oracle/config.json` (parsed as JSON5, so comments/t
 | `--chatgpt-url <url>` | Point the browser engine at the ChatGPT root or a workspace/folder URL. |
 | `--azure-endpoint <url>` | Use Azure OpenAI (switches client automatically). |
 | `--files-report` | Print per-file token usage. |
+| `--write-output <path>` | Write only the completed answer to `<path>`; multi-model runs append `.<model>` before the extension. |
 | `--dry-run [summary\|json\|full]` | Inspect the request without sending (alias: `--preview`). |
 
 See [docs/openai-endpoints.md](docs/openai-endpoints.md) for advanced Azure/LiteLLM configuration.
@@ -123,6 +124,7 @@ See [docs/openai-endpoints.md](docs/openai-endpoints.md) for advanced Azure/Lite
 
 Every non-preview run writes to `~/.oracle/sessions/<slug>` with usage, cost hints, and logs. Use `oracle status` to list sessions, `oracle session <id>` to replay, and `oracle status --clear --hours 168` to prune. Set `ORACLE_HOME_DIR` to relocate storage.
 Add `--render` (alias `--render-markdown`) when attaching to pretty-print the stored markdown if your terminal supports color; falls back to raw text otherwise.
+Need a ready-made answer file? Add `--write-output path/to/file.md` to save just the final assistant message (multi-model writes one file per model by inserting `.<model>` before the extension; overwrites targets).
 
 **Recommendation:** Prefer the API engine when you have an API key (`--engine api` or just set `OPENAI_API_KEY`). The API delivers more reliable results and supports longer, uninterrupted runs than the browser engine in most cases.
 
