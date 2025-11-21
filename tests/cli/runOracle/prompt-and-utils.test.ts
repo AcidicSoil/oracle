@@ -69,7 +69,7 @@ describe('renderPromptMarkdown', () => {
         },
         { cwd },
       );
-      const { warnIfOversizeBundle } = await import('../../../src/cli/bundleWarnings.js');
+      const { warnIfOversizeBundle } = await import('../../../src/cli/bundleWarnings.ts');
       const warned = warnIfOversizeBundle(200_000, 196_000, (msg: string) => logs.push(msg));
       expect(warned).toBe(true);
       expect(logs.join('\n')).toMatch(/Warning: bundle is ~200,000 tokens/);
