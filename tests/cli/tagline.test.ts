@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { pickTagline, formatIntroLine, TAGLINES } from '../../src/cli/tagline.ts';
+import {
+  activeTaglines,
+  formatIntroLine,
+  pickTagline,
+  TAGLINES,
+} from '../../src/cli/tagline.ts';
 
 describe('taglines', () => {
   test('respects env override for deterministic index', () => {
@@ -19,6 +24,18 @@ describe('taglines', () => {
   test('falls back to random source when no override', () => {
     const tagline = pickTagline({ random: () => 0.49 });
     expect(TAGLINES).toContain(tagline);
+  });
+
+  test('hides seasonal taglines on non-holiday dates', () => {
+    const today = () => new Date(Date.UTC(2025, 10, 21)); // Nov 21 2025 UTC
+    const active = activeTaglines({ now: today });
+    expect(active).not.toContain('Lunar New Year sweep: clear caches, invite good deploys.');
+  });
+
+  test('shows seasonal tagline on its holiday date', () => {
+    const today = () => new Date(Date.UTC(2025, 0, 29)); // Lunar New Year 2025 UTC
+    const active = activeTaglines({ now: today });
+    expect(active).toContain('Lunar New Year sweep: clear caches, invite good deploys.');
   });
 
   test('formats intro line with version (plain)', () => {

@@ -121,10 +121,157 @@ const TAGLINES = [
   'Solstice deploy: longest day, shortest incident list.',
 ];
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+type HolidayRule = (date: Date) => boolean;
+
+function utcParts(date: Date) {
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth(),
+    day: date.getUTCDate(),
+  };
+}
+
+const onMonthDay =
+  (month: number, day: number): HolidayRule =>
+  (date) => {
+    const parts = utcParts(date);
+    return parts.month === month && parts.day === day;
+  };
+
+const onSpecificDates =
+  (dates: Array<[number, number, number]>, durationDays = 1): HolidayRule =>
+  (date) => {
+    const parts = utcParts(date);
+    return dates.some(([year, month, day]) => {
+      if (parts.year !== year) return false;
+      const start = Date.UTC(year, month, day);
+      const current = Date.UTC(parts.year, parts.month, parts.day);
+      return current >= start && current < start + durationDays * DAY_MS;
+    });
+  };
+
+const inYearWindow =
+  (
+    windows: Array<{
+      year: number;
+      month: number;
+      day: number;
+      duration: number;
+    }>
+  ): HolidayRule =>
+  (date) => {
+    const parts = utcParts(date);
+    const window = windows.find((entry) => entry.year === parts.year);
+    if (!window) return false;
+    const start = Date.UTC(window.year, window.month, window.day);
+    const current = Date.UTC(parts.year, parts.month, parts.day);
+    return current >= start && current < start + window.duration * DAY_MS;
+  };
+
+const isFourthThursdayOfNovember: HolidayRule = (date) => {
+  const parts = utcParts(date);
+  if (parts.month !== 10) return false; // November
+  const firstDay = new Date(Date.UTC(parts.year, 10, 1)).getUTCDay();
+  const offsetToThursday = (4 - firstDay + 7) % 7; // 4 = Thursday
+  const fourthThursday = 1 + offsetToThursday + 21; // 1st + offset + 3 weeks
+  return parts.day === fourthThursday;
+};
+
+const HOLIDAY_RULES = new Map<string, HolidayRule>([
+  ['New year, same oracle: resolutions shipped, not wished.', onMonthDay(0, 1)],
+  [
+    'Lunar New Year sweep: clear caches, invite good deploys.',
+    onSpecificDates(
+      [
+        [2025, 0, 29],
+        [2026, 1, 17],
+        [2027, 1, 6],
+      ],
+      1
+    ),
+  ],
+  [
+    'Eid Mubarak: feast on clarity, fast from hallucinations.',
+    onSpecificDates(
+      [
+        [2025, 2, 31],
+        [2026, 2, 20],
+        [2027, 2, 10],
+      ],
+      1
+    ),
+  ],
+  [
+    'Diwali: lights on, incident lights off.',
+    onSpecificDates(
+      [
+        [2025, 9, 20],
+        [2026, 10, 8],
+        [2027, 9, 29],
+      ],
+      1
+    ),
+  ],
+  [
+    'Holi colors on dashboards, not in logs.',
+    onSpecificDates(
+      [
+        [2025, 2, 14],
+        [2026, 2, 3],
+        [2027, 2, 23],
+      ],
+      1
+    ),
+  ],
+  ["Workers' Day: let oracle haul the heavy context.", onMonthDay(4, 1)],
+  ['Earth Day: trim carbon, trim token waste.', onMonthDay(3, 22)],
+  ['Halloween: ship treats, not trick exceptions.', onMonthDay(9, 31)],
+  [
+    'Independence Day: sparkles in the sky, not in the error console.',
+    onMonthDay(6, 4),
+  ],
+  ['Christmas: all is calm, all is shipped.', onMonthDay(11, 25)],
+  ['Nowruz reset: sweep caches, welcome clean deploys.', onMonthDay(2, 20)],
+  [
+    'Hanukkah lights, zero prod fires.',
+    inYearWindow([
+      { year: 2025, month: 11, day: 14, duration: 8 },
+      { year: 2026, month: 11, day: 4, duration: 8 },
+      { year: 2027, month: 10, day: 24, duration: 8 },
+    ]),
+  ],
+  [
+    'Ramadan focus: fast from scope creep, feast on clarity.',
+    inYearWindow([
+      { year: 2025, month: 1, day: 28, duration: 30 },
+      { year: 2026, month: 1, day: 17, duration: 30 },
+      { year: 2027, month: 1, day: 7, duration: 30 },
+    ]),
+  ],
+  ['Pride Month: more color on the streets, less red in CI.', (date) => utcParts(date).month === 5],
+  ['Thanksgiving: grateful for green builds, no turkey outages.', isFourthThursdayOfNovember],
+  ['Solstice deploy: longest day, shortest incident list.', onMonthDay(5, 21)],
+]);
+
+function isTaglineActive(tagline: string, date: Date): boolean {
+  const rule = HOLIDAY_RULES.get(tagline);
+  if (!rule) return true;
+  return rule(date);
+}
+
 export interface TaglineOptions {
   env?: NodeJS.ProcessEnv;
   random?: () => number;
   richTty?: boolean;
+  now?: () => Date;
+}
+
+export function activeTaglines(options: TaglineOptions = {}): string[] {
+  const today = options.now ? options.now() : new Date();
+  const filtered = TAGLINES.filter((tagline) => isTaglineActive(tagline, today));
+  return filtered.length > 0 ? filtered : TAGLINES;
 }
 
 export function pickTagline(options: TaglineOptions = {}): string {
@@ -136,9 +283,10 @@ export function pickTagline(options: TaglineOptions = {}): string {
       return TAGLINES[parsed % TAGLINES.length];
     }
   }
+  const pool = activeTaglines(options);
   const rand = options.random ?? Math.random;
-  const index = Math.floor(rand() * TAGLINES.length) % TAGLINES.length;
-  return TAGLINES[index];
+  const index = Math.floor(rand() * pool.length) % pool.length;
+  return pool[index];
 }
 
 export function formatIntroLine(version: string, options: TaglineOptions = {}): string {
