@@ -35,12 +35,6 @@ oracle session <id> --render
 oracle
 ```
 
-### Clipboard bundle (semi-manual)
-- Build the markdown bundle, print it, and copy it to your clipboard in one go:
-  ```bash
-  oracle --render --copy -p "Trace the telemetry pipeline and risks" --file docs/telemetry.md docs/risk-matrix.md
-  ```
-
 ## Integration
 
 - API mode expects `OPENAI_API_KEY` in your environment (set it once in your shell profile).
