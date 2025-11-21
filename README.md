@@ -25,6 +25,9 @@ OPENAI_API_KEY=sk-... npx -y @steipete/oracle -p "Review the TS data layer" --fi
 # Browser engine (no API key)
 npx -y @steipete/oracle --engine browser -p "Review the TS data layer" --file "src/**/*.ts,!src/**/*.test.ts"
 
+# Multi-model in one call (API): GPT-5.1 Pro + Gemini 3 Pro + Claude Sonnet
+OPENAI_API_KEY=sk-... npx -y @steipete/oracle --models "gpt-5.1-pro,gemini-3-pro,claude-4.5-sonnet" -p "Cross-check this design" --file src/
+
 # Sessions (list + reattach)
 npx -y @steipete/oracle status
 npx -y @steipete/oracle session <id>
@@ -93,6 +96,7 @@ Full flag list: `npx -y @steipete/oracle --help` (or `--help --verbose` for hidd
 - **Progress spam?** Use non-verbose mode; browser automation logs stay quiet unless `--verbose`.
 - **Need Chromium/Edge?** Set `--browser-chrome-path` and `--browser-cookie-path`; see [docs/chromium-forks.md](docs/chromium-forks.md).
 - **Detach vs wait?** Pro API runs detach by default; add `--wait` to stay attached, else reattach via `oracle session <id>`.
+- **New model availability (GPT-5.1 Pro / Codex Max via API)** We publish support as soon as OpenAI ships stable API IDs. Until then, the CLI will refuse unknown model names to avoid 404s.
 
 ## Testing
 
