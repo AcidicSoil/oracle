@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## 0.4.3 — Unreleased
+## 0.4.3 — 2025-11-22
 
 ### Added
 - xAI Grok 4.1 API support (`--model grok-4.1` / alias `grok`): defaults to `https://api.x.ai/v1`, uses `XAI_API_KEY`, maps search to `web_search`, and includes docs + live smoke.
