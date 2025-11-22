@@ -1,8 +1,5 @@
-import {
-  APIConnectionError,
-  APIConnectionTimeoutError,
-  APIUserAbortError,
-} from 'openai';
+import { APIConnectionError, APIConnectionTimeoutError, APIUserAbortError } from 'openai';
+import { APIError } from 'openai/error';
 import type { OracleResponse, OracleResponseMetadata, TransportFailureReason } from './types.js';
 import { formatElapsed } from './format.js';
 
@@ -118,6 +115,15 @@ export function toTransportError(error: unknown): OracleTransportError {
       error,
     );
   }
+  if (error instanceof APIError) {
+    if (error.status === 404 || error.status === 405) {
+      return new OracleTransportError(
+        'unsupported-endpoint',
+        'HTTP 404/405 from the Responses API; this base URL or gateway likely does not expose /v1/responses. Set OPENAI_BASE_URL to api.openai.com/v1, update your Azure API version/deployment, or use the browser engine.',
+        error,
+      );
+    }
+  }
   return new OracleTransportError(
     'unknown',
     error instanceof Error ? error.message : 'Unknown transport failure.',
@@ -135,6 +141,8 @@ export function describeTransportError(error: OracleTransportError, deadlineMs?:
       return 'Connection to OpenAI ended unexpectedly before the response completed.';
     case 'client-abort':
       return 'Request was aborted before OpenAI completed the response.';
+    case 'unsupported-endpoint':
+      return 'The Responses API returned 404/405 — your base URL/gateway probably lacks /v1/responses (check OPENAI_BASE_URL or switch to api.openai.com / browser engine).';
     default:
       return 'OpenAI streaming call ended with an unknown transport error.';
   }

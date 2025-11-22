@@ -241,4 +241,9 @@ export interface OracleResponseMetadata {
   incompleteReason?: string | null;
 }
 
-export type TransportFailureReason = 'client-timeout' | 'connection-lost' | 'client-abort' | 'unknown';
+export type TransportFailureReason =
+  | 'client-timeout'
+  | 'connection-lost'
+  | 'client-abort'
+  | 'unsupported-endpoint'
+  | 'unknown';
