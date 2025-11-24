@@ -228,6 +228,7 @@ export async function serveRemote(options: RemoteServerOptions = {}): Promise<vo
       console.log(
         `Cookie extraction is unavailable on this platform. Using manual-login Chrome profile at ${manualProfileDir}. Remote runs will reuse this profile; sign in once when the browser opens.`,
       );
+      void launchManualLoginChrome(manualProfileDir, CHATGPT_URL, console.log);
     } else if (opened) {
       console.log('Opened chatgpt.com for login. Sign in, then restart `oracle serve` to continue.');
       return;
@@ -436,5 +437,36 @@ function canSpawn(cmd: string): boolean {
     return whichResult.status === 0;
   } catch {
     return false;
+  }
+}
+
+async function launchManualLoginChrome(profileDir: string, url: string, logger: (msg: string) => void): Promise<void> {
+  const timeoutMs = 7000;
+  let finished = false;
+  const timeout = setTimeout(() => {
+    if (!finished) {
+      logger(
+        `Timed out launching Chrome for manual login. Launch Chrome manually with --user-data-dir=${profileDir} and log in to ${url}.`,
+      );
+    }
+  }, timeoutMs);
+  try {
+    const chromeLauncher = await import('chrome-launcher');
+    const { launch } = chromeLauncher;
+    await launch({
+      userDataDir: profileDir,
+      startingUrl: url,
+      chromeFlags: ['--no-first-run', '--no-default-browser-check', `--user-data-dir=${profileDir}`],
+    });
+    finished = true;
+    clearTimeout(timeout);
+    logger(`Opened Chrome with manual-login profile at ${profileDir}. Complete login, then rerun remote sessions.`);
+  } catch (error) {
+    finished = true;
+    clearTimeout(timeout);
+    const message = error instanceof Error ? error.message : String(error);
+    logger(
+      `Unable to open Chrome for manual login (${message}). Launch Chrome manually with --user-data-dir=${profileDir} and log in to ${url}.`,
+    );
   }
 }
