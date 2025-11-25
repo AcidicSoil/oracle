@@ -3,7 +3,7 @@ import {
   INPUT_SELECTORS,
   PROMPT_PRIMARY_SELECTOR,
   PROMPT_FALLBACK_SELECTOR,
-  SEND_BUTTON_SELECTOR,
+  SEND_BUTTON_SELECTORS,
   CONVERSATION_TURN_SELECTOR,
 } from '../constants.js';
 import { delay } from '../utils.js';
@@ -129,16 +129,24 @@ export async function submitPrompt(
 
 async function attemptSendButton(Runtime: ChromeClient['Runtime']): Promise<boolean> {
   const script = `(() => {
-    const button = document.querySelector('${SEND_BUTTON_SELECTOR}');
-    if (!button) {
-      return 'missing';
+    const selectors = ${JSON.stringify(SEND_BUTTON_SELECTORS)};
+    let button = null;
+    for (const selector of selectors) {
+      button = document.querySelector(selector);
+      if (button) break;
     }
+    if (!button) return 'missing';
     const ariaDisabled = button.getAttribute('aria-disabled');
-    const disabled = button.hasAttribute('disabled') || ariaDisabled === 'true';
-    if (disabled || window.getComputedStyle(button).display === 'none') {
-      return 'disabled';
-    }
-    button.click();
+    const dataDisabled = button.getAttribute('data-disabled');
+    const style = window.getComputedStyle(button);
+    const disabled =
+      button.hasAttribute('disabled') ||
+      ariaDisabled === 'true' ||
+      dataDisabled === 'true' ||
+      style.pointerEvents === 'none' ||
+      style.display === 'none';
+    if (disabled) return 'disabled';
+    (button as HTMLElement).click();
     return 'clicked';
   })()`;
 

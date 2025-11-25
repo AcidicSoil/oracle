@@ -27,19 +27,38 @@ export const CLOUDFLARE_SCRIPT_SELECTOR = 'script[src*="/challenge-platform/"]';
 export const CLOUDFLARE_TITLE = 'just a moment';
 export const PROMPT_PRIMARY_SELECTOR = '#prompt-textarea';
 export const PROMPT_FALLBACK_SELECTOR = 'textarea[name="prompt-textarea"]';
-export const FILE_INPUT_SELECTOR = 'form input[type="file"]:not([accept])';
-export const GENERIC_FILE_INPUT_SELECTOR = 'input[type="file"]:not([accept])';
+export const FILE_INPUT_SELECTORS = [
+  'form input[type="file"]:not([accept])',
+  'input[type="file"][multiple]:not([accept])',
+  'input[type="file"][multiple]',
+  'input[type="file"]:not([accept])',
+  'input[type="file"][data-testid*="file"]',
+];
+// Legacy single selectors kept for compatibility with older call-sites
+export const FILE_INPUT_SELECTOR = FILE_INPUT_SELECTORS[0];
+export const GENERIC_FILE_INPUT_SELECTOR = FILE_INPUT_SELECTORS[3];
 export const MENU_CONTAINER_SELECTOR = '[role="menu"], [data-radix-collection-root]';
 export const MENU_ITEM_SELECTOR = 'button, [role="menuitem"], [role="menuitemradio"], [data-testid*="model-switcher-"]';
 export const UPLOAD_STATUS_SELECTORS = [
   '[data-testid*="upload"]',
   '[data-testid*="attachment"]',
+  '[data-testid*="progress"]',
   '[data-state="loading"]',
+  '[data-state="uploading"]',
+  '[data-state="pending"]',
   '[aria-live="polite"]',
+  '[aria-live="assertive"]',
 ];
 
 export const STOP_BUTTON_SELECTOR = '[data-testid="stop-button"]';
-export const SEND_BUTTON_SELECTOR = '[data-testid="send-button"]';
+export const SEND_BUTTON_SELECTORS = [
+  '[data-testid="send-button"]',
+  'button[data-testid="composer-send-button"]',
+  'button[aria-label="Send message"]',
+  'button[aria-label*="Send"]',
+  'button[type="submit"][data-testid*="send"]',
+];
+export const SEND_BUTTON_SELECTOR = SEND_BUTTON_SELECTORS[0];
 export const MODEL_BUTTON_SELECTOR = '[data-testid="model-switcher-dropdown-button"]';
 export const COPY_BUTTON_SELECTOR = 'button[data-testid="copy-turn-action-button"]';
 // Action buttons that only appear once a turn has finished rendering.

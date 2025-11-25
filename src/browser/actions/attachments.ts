@@ -1,11 +1,6 @@
 import path from 'node:path';
 import type { ChromeClient, BrowserAttachment, BrowserLogger } from '../types.js';
-import {
-  FILE_INPUT_SELECTOR,
-  GENERIC_FILE_INPUT_SELECTOR,
-  SEND_BUTTON_SELECTOR,
-  UPLOAD_STATUS_SELECTORS,
-} from '../constants.js';
+import { FILE_INPUT_SELECTORS, SEND_BUTTON_SELECTORS, UPLOAD_STATUS_SELECTORS } from '../constants.js';
 import { delay } from '../utils.js';
 import { logDomFailure } from '../domDebug.js';
 
@@ -19,7 +14,7 @@ export async function uploadAttachmentFile(
     throw new Error('DOM domain unavailable while uploading attachments.');
   }
   const documentNode = await dom.getDocument();
-  const selectors = [FILE_INPUT_SELECTOR, GENERIC_FILE_INPUT_SELECTOR];
+  const selectors = FILE_INPUT_SELECTORS;
   let targetNodeId: number | undefined;
   for (const selector of selectors) {
     const result = await dom.querySelector({ nodeId: documentNode.root.nodeId, selector });
@@ -39,7 +34,7 @@ export async function uploadAttachmentFile(
     await logDomFailure(runtime, logger, 'file-upload');
     throw new Error('Attachment did not register with the ChatGPT composer in time.');
   }
-    logger('Attachment queued');
+  logger('Attachment queued');
 }
 
 export async function waitForAttachmentCompletion(
@@ -49,25 +44,49 @@ export async function waitForAttachmentCompletion(
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   const expression = `(() => {
-    const button = document.querySelector('${SEND_BUTTON_SELECTOR}');
-    if (!button) {
-      return { state: 'missing', uploading: false };
+    const sendSelectors = ${JSON.stringify(SEND_BUTTON_SELECTORS)};
+    let button = null;
+    for (const selector of sendSelectors) {
+      button = document.querySelector(selector);
+      if (button) break;
     }
-    const disabled = button.hasAttribute('disabled') || button.getAttribute('aria-disabled') === 'true';
+    const disabled = button
+      ? button.hasAttribute('disabled') ||
+        button.getAttribute('aria-disabled') === 'true' ||
+        button.getAttribute('data-disabled') === 'true' ||
+        window.getComputedStyle(button).pointerEvents === 'none'
+      : null;
     const uploadingSelectors = ${JSON.stringify(UPLOAD_STATUS_SELECTORS)};
     const uploading = uploadingSelectors.some((selector) => {
       return Array.from(document.querySelectorAll(selector)).some((node) => {
+        const ariaBusy = node.getAttribute?.('aria-busy');
+        const dataState = node.getAttribute?.('data-state');
+        if (ariaBusy === 'true' || dataState === 'loading' || dataState === 'uploading' || dataState === 'pending') {
+          return true;
+        }
         const text = node.textContent?.toLowerCase?.() ?? '';
-        return text.includes('upload') || text.includes('processing');
+        return text.includes('upload') || text.includes('processing') || text.includes('uploading');
       });
     });
-    return { state: disabled ? 'disabled' : 'ready', uploading };
+    const fileSelectors = ${JSON.stringify(FILE_INPUT_SELECTORS)};
+    const filesAttached = fileSelectors.some((selector) =>
+      Array.from(document.querySelectorAll(selector)).some((node) => {
+        const el = node instanceof HTMLInputElement ? node : null;
+        return Boolean(el?.files?.length);
+      }),
+    );
+    return { state: button ? (disabled ? 'disabled' : 'ready') : 'missing', uploading, filesAttached };
   })()`;
   while (Date.now() < deadline) {
     const { result } = await Runtime.evaluate({ expression, returnByValue: true });
-    const value = result?.value as { state?: string; uploading?: boolean } | undefined;
-    if (value && value.state === 'ready' && !value.uploading) {
-      return;
+    const value = result?.value as { state?: string; uploading?: boolean; filesAttached?: boolean } | undefined;
+    if (value && !value.uploading) {
+      if (value.state === 'ready') {
+        return;
+      }
+      if (value.state === 'missing' && value.filesAttached) {
+        return;
+      }
     }
     await delay(250);
   }
@@ -83,13 +102,20 @@ async function waitForAttachmentSelection(
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   const expression = `(() => {
-    const selector = ${JSON.stringify(GENERIC_FILE_INPUT_SELECTOR)};
-    const input = document.querySelector(selector);
-    if (!input || !input.files) {
-      return { matched: false, names: [] };
+    const selectors = ${JSON.stringify(FILE_INPUT_SELECTORS)};
+    for (const selector of selectors) {
+      const inputs = Array.from(document.querySelectorAll(selector));
+      for (const input of inputs) {
+        if (!(input instanceof HTMLInputElement) || !input.files) {
+          continue;
+        }
+        const names = Array.from(input.files ?? []).map((file) => file?.name ?? '');
+        if (names.some((name) => name === ${JSON.stringify(expectedName)})) {
+          return { matched: true, names };
+        }
+      }
     }
-    const names = Array.from(input.files).map((file) => file?.name ?? '');
-    return { matched: names.some((name) => name === ${JSON.stringify(expectedName)}), names };
+    return { matched: false, names: [] };
   })()`;
   while (Date.now() < deadline) {
     const { result } = await Runtime.evaluate({ expression, returnByValue: true });

@@ -226,16 +226,25 @@ describe('waitForAttachmentCompletion', () => {
     const runtime = {
       evaluate: vi
         .fn()
-        .mockResolvedValueOnce({ result: { value: { state: 'disabled', uploading: true } } })
-        .mockResolvedValueOnce({ result: { value: { state: 'ready', uploading: false } } }),
+        .mockResolvedValueOnce({ result: { value: { state: 'disabled', uploading: true, filesAttached: true } } })
+        .mockResolvedValueOnce({ result: { value: { state: 'ready', uploading: false, filesAttached: true } } }),
     } as unknown as ChromeClient['Runtime'];
     await expect(waitForAttachmentCompletion(runtime, 500)).resolves.toBeUndefined();
     expect(runtime.evaluate).toHaveBeenCalledTimes(2);
   });
 
+  test('resolves when send button missing but files present', async () => {
+    const runtime = {
+      evaluate: vi.fn().mockResolvedValueOnce({
+        result: { value: { state: 'missing', uploading: false, filesAttached: true } },
+      }),
+    } as unknown as ChromeClient['Runtime'];
+    await expect(waitForAttachmentCompletion(runtime, 200)).resolves.toBeUndefined();
+  });
+
   test('rejects when timeout reached', async () => {
     const runtime = {
-      evaluate: vi.fn().mockResolvedValue({ result: { value: { state: 'disabled', uploading: true } } }),
+      evaluate: vi.fn().mockResolvedValue({ result: { value: { state: 'disabled', uploading: true, filesAttached: false } } }),
     } as unknown as ChromeClient['Runtime'];
     await expect(waitForAttachmentCompletion(runtime, 200)).rejects.toThrow(/Attachments did not finish/);
   });

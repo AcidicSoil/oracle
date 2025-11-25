@@ -50,14 +50,18 @@ export function registerTerminationHooks(
       return;
     }
     handling = true;
-    logger(`Received ${signal}; terminating Chrome process`);
+    if (keepBrowser) {
+      logger(`Received ${signal}; leaving Chrome running for potential reattach`);
+    } else {
+      logger(`Received ${signal}; terminating Chrome process`);
+    }
     void (async () => {
-      try {
-        await chrome.kill();
-      } catch {
-        // ignore kill failures
-      }
       if (!keepBrowser) {
+        try {
+          await chrome.kill();
+        } catch {
+          // ignore kill failures
+        }
         await rm(userDataDir, { recursive: true, force: true }).catch(() => undefined);
       }
     })().finally(() => {

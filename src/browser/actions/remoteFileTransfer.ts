@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ChromeClient, BrowserAttachment, BrowserLogger } from '../types.js';
-import { FILE_INPUT_SELECTOR, GENERIC_FILE_INPUT_SELECTOR } from '../constants.js';
+import { FILE_INPUT_SELECTORS } from '../constants.js';
 import { delay } from '../utils.js';
 import { logDomFailure } from '../domDebug.js';
 
@@ -38,10 +38,9 @@ export async function uploadAttachmentViaDataTransfer(
 
   // Find file input element
   const documentNode = await dom.getDocument();
-  const selectors = [FILE_INPUT_SELECTOR, GENERIC_FILE_INPUT_SELECTOR];
   let fileInputSelector: string | undefined;
 
-  for (const selector of selectors) {
+  for (const selector of FILE_INPUT_SELECTORS) {
     const result = await dom.querySelector({ nodeId: documentNode.root.nodeId, selector });
     if (result.nodeId) {
       fileInputSelector = selector;
