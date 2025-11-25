@@ -84,6 +84,7 @@ export interface BrowserRunResult {
   userDataDir?: string;
   chromeTargetId?: string;
   tabUrl?: string;
+  controllerPid?: number;
 }
 
 export type ResolvedBrowserConfig = Required<

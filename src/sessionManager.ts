@@ -41,6 +41,8 @@ export interface BrowserRuntimeMetadata {
   userDataDir?: string;
   chromeTargetId?: string;
   tabUrl?: string;
+  /** PID of the controller process that launched this browser run. Helps detect orphaned sessions. */
+  controllerPid?: number;
 }
 
 export interface BrowserMetadata {

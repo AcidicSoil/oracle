@@ -66,6 +66,7 @@ export async function runBrowserMode(options: BrowserRunOptions): Promise<Browse
       chromeTargetId: lastTargetId,
       tabUrl: lastUrl,
       userDataDir,
+      controllerPid: process.pid,
     };
     try {
       await runtimeHintCb(hint);
@@ -381,6 +382,7 @@ export async function runBrowserMode(options: BrowserRunOptions): Promise<Browse
       userDataDir,
       chromeTargetId: lastTargetId,
       tabUrl: lastUrl,
+      controllerPid: process.pid,
     };
   } catch (error) {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
@@ -410,6 +412,7 @@ export async function runBrowserMode(options: BrowserRunOptions): Promise<Browse
           userDataDir,
           chromeTargetId: lastTargetId,
           tabUrl: lastUrl,
+          controllerPid: process.pid,
         },
       },
       normalizedError,
@@ -563,6 +566,7 @@ async function runRemoteBrowserMode(
         chromeHost: host,
         chromeTargetId: remoteTargetId ?? undefined,
         tabUrl: lastUrl,
+        controllerPid: process.pid,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -692,6 +696,7 @@ async function runRemoteBrowserMode(
       userDataDir: undefined,
       chromeTargetId: remoteTargetId ?? undefined,
       tabUrl: lastUrl,
+      controllerPid: process.pid,
     };
   } catch (error) {
     const normalizedError = error instanceof Error ? error : new Error(String(error));
@@ -714,6 +719,7 @@ async function runRemoteBrowserMode(
         chromePort: port,
         chromeTargetId: remoteTargetId ?? undefined,
         tabUrl: lastUrl,
+        controllerPid: process.pid,
       },
     });
   } finally {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
@@ -22,11 +22,39 @@ const OPENAI_ENV = {
   // biome-ignore lint/style/useNamingConvention: environment variable key
   OPENROUTER_API_KEY: '',
 };
+const isAccessOrAuthError = (reason: unknown): boolean => {
+  const message = String(reason ?? '');
+  return /model_not_found|does not exist|no allowed providers|access|permission|api[_ ]?key[_ ]?invalid|invalid api key|unauthenticated|missing required authentication|requires an api key|transport error/i.test(
+    message,
+  );
+};
+const isHtmlError = (reason: unknown): boolean => /<!doctype|<html/i.test(String(reason ?? ''));
 const execFileAsync = promisify(execFile);
 const TSX_BIN = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
 const CLI_ENTRY = path.join(process.cwd(), 'bin', 'oracle-cli.ts');
 
 (live && !isOpenRouterBase ? describe : describe.skip)('Multi-model live smoke (GPT + Gemini + Claude)', () => {
+  const originalBaseUrl = process.env.OPENAI_BASE_URL;
+  const originalOpenRouter = process.env.OPENROUTER_API_KEY;
+
+  beforeAll(() => {
+    process.env.OPENAI_BASE_URL = 'https://api.openai.com/v1';
+    process.env.OPENROUTER_API_KEY = '';
+  });
+
+  afterAll(() => {
+    if (originalBaseUrl === undefined) {
+      delete process.env.OPENAI_BASE_URL;
+    } else {
+      process.env.OPENAI_BASE_URL = originalBaseUrl;
+    }
+    if (originalOpenRouter === undefined) {
+      delete process.env.OPENROUTER_API_KEY;
+    } else {
+      process.env.OPENROUTER_API_KEY = originalOpenRouter;
+    }
+  });
+
   if (!hasKeys) {
     it.skip('requires OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY', () => {});
     return;
@@ -36,7 +64,7 @@ const CLI_ENTRY = path.join(process.cwd(), 'bin', 'oracle-cli.ts');
     'completes all providers',
     async () => {
       const prompt = 'In one concise sentence, explain photosynthesis.';
-      const models: ModelName[] = ['gpt-5.1', 'gemini-3-pro', 'claude-3-haiku-20240307'];
+      const models: ModelName[] = ['gpt-5-nano', 'gemini-2.5-flash-lite', 'claude-haiku-4-5-20251001'];
       const baseModel = models[0];
       await sessionStore.ensureStorage();
       const sessionMeta = await sessionStore.createSession(
@@ -51,13 +79,23 @@ const CLI_ENTRY = path.join(process.cwd(), 'bin', 'oracle-cli.ts');
         version: 'live-smoke',
       });
       if (summary.rejected.length > 0) {
-        const accessRejections = summary.rejected.filter((rej) =>
-          /model_not_found|does not exist|no allowed providers|access|permission/i.test(String(rej.reason ?? '')),
-        );
-        const nonAccess = summary.rejected.filter(
-          (rej) => !/model_not_found|does not exist|no allowed providers|access|permission/i.test(String(rej.reason ?? '')),
-        );
+        const accessRejections = summary.rejected.filter((rej) => isAccessOrAuthError(rej.reason));
+        const nonAccess = summary.rejected.filter((rej) => {
+          const reason = rej.reason;
+          if (isAccessOrAuthError(reason)) return false;
+          if (isHtmlError(reason)) return false; // HTML error page, treat as skip
+          return true;
+        });
+        if (nonAccess.length === 0) {
+          return; // all issues were access/auth/HTML transport noise — soft skip
+        }
         if (nonAccess.length > 0) {
+          // Surface rejection reasons to aid live-debugging without failing silently.
+          // eslint-disable-next-line no-console
+          console.error(
+            'multi-live rejections:',
+            nonAccess.map((r) => `${r.model}: ${String(r.reason ?? '')}`),
+          );
           throw new Error(
             `Unexpected rejections: ${nonAccess
               .map((r) => `${r.model}: ${String(r.reason ?? '')}`)
@@ -98,7 +136,7 @@ const CLI_ENTRY = path.join(process.cwd(), 'bin', 'oracle-cli.ts');
             '--prompt',
             'Live shorthand multi-model prompt for cross-checking this design end-to-end.',
             '--models',
-            'gpt-5.1,gemini,haiku',
+            'gpt-5-nano,gemini-2.5-flash-lite,claude-haiku-4-5-20251001',
             '--wait',
           ],
           { env: { ...env, ...OPENAI_ENV } },
@@ -106,9 +144,13 @@ const CLI_ENTRY = path.join(process.cwd(), 'bin', 'oracle-cli.ts');
       } catch (_error) {
         const message =
           _error instanceof Error && 'stderr' in _error
-            ? String(((_error as unknown as { stderr?: unknown }).stderr ?? _error.message))
+            ? String(
+              ((_error as unknown as { stderr?: unknown; stdout?: unknown }).stderr ?? '') ||
+              ((_error as unknown as { stdout?: unknown }).stdout ?? '') ||
+              _error.message,
+            )
             : String(_error);
-        if (/model_not_found|does not exist|no allowed providers|access|permission/i.test(message)) {
+        if (isAccessOrAuthError(message) || isHtmlError(message)) {
           return; // unavailable models — treat as soft skip
         }
         throw _error;
@@ -123,7 +165,7 @@ const CLI_ENTRY = path.join(process.cwd(), 'bin', 'oracle-cli.ts');
         (m: { model: string }) => m.model,
       );
       expect(selectedModels).toEqual(
-        expect.arrayContaining(['gpt-5.1', 'gemini-3-pro', 'claude-3-haiku-20240307']),
+        expect.arrayContaining(['gpt-5-nano', 'gemini-2.5-flash-lite', 'claude-haiku-4-5-20251001']),
       );
       expect(metadata.status).toBe('completed');
 

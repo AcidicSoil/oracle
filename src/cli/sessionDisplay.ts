@@ -22,6 +22,16 @@ const dim = (text: string): string => (isTty() ? kleur.dim(text) : text);
 export const MAX_RENDER_BYTES = 200_000;
 const MODEL_COLUMN_WIDTH = 18;
 
+function isProcessAlive(pid?: number): boolean {
+  if (!pid) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return !(error instanceof Error && (error as NodeJS.ErrnoException).code === 'ESRCH');
+  }
+}
+
 export interface ShowStatusOptions {
   hours: number;
   includeAll: boolean;
@@ -128,18 +138,23 @@ export async function attachSession(sessionId: string, options?: AttachSessionOp
   const initialStatus = metadata.status;
   const wantsRender = Boolean(options?.renderMarkdown);
   const isVerbose = Boolean(process.env.ORACLE_VERBOSE_RENDER);
+  const runtime = metadata.browser?.runtime;
+  const controllerAlive = isProcessAlive(runtime?.controllerPid);
 
-  if (
+  const canReattach =
     metadata.status === 'running' &&
     metadata.mode === 'browser' &&
-    metadata.response?.incompleteReason === 'chrome-disconnected' &&
-    metadata.browser?.runtime?.chromePort
-  ) {
-    console.log(chalk.yellow('Attempting to reattach to the existing Chrome session...'));
+    runtime?.chromePort &&
+    (metadata.response?.incompleteReason === 'chrome-disconnected' || (runtime.controllerPid && !controllerAlive));
+
+  if (canReattach) {
+    const portInfo = runtime?.chromePort ? `port ${runtime.chromePort}` : 'unknown port';
+    const urlInfo = runtime?.tabUrl ? `url=${runtime.tabUrl}` : 'url=unknown';
+    console.log(chalk.yellow(`Attempting to reattach to the existing Chrome session (${portInfo}, ${urlInfo})...`));
     try {
       const result = await resumeBrowserSession(
-        metadata.browser.runtime,
-        metadata.browser.config,
+        runtime as NonNullable<typeof runtime>,
+        metadata.browser?.config,
         Object.assign(
           ((message?: string) => {
             if (message) {
@@ -177,8 +192,8 @@ export async function attachSession(sessionId: string, options?: AttachSessionOp
           totalTokens: outputTokens,
         },
         browser: {
-          config: metadata.browser.config,
-          runtime: metadata.browser.runtime,
+          config: metadata.browser?.config,
+          runtime,
         },
         response: { status: 'completed' },
         error: undefined,

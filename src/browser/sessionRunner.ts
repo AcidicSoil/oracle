@@ -98,7 +98,7 @@ export async function runBrowserSessionExecution(
       heartbeatIntervalMs: runOptions.heartbeatIntervalMs,
       verbose: runOptions.verbose,
       runtimeHintCb: async (runtime) => {
-        await persistRuntimeHint(runtime);
+        await persistRuntimeHint({ ...runtime, controllerPid: runtime.controllerPid ?? process.pid });
       },
     });
   } catch (error) {
@@ -142,6 +142,7 @@ export async function runBrowserSessionExecution(
       chromePort: browserResult.chromePort,
       chromeHost: browserResult.chromeHost,
       userDataDir: browserResult.userDataDir,
+      controllerPid: browserResult.controllerPid ?? process.pid,
     },
     answerText,
   };
