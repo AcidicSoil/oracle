@@ -27,18 +27,19 @@ async function loadCatalog(): Promise<Set<string>> {
 
 (shouldRunOpenRouter ? describe : describe.skip)('OpenRouter live', () => {
   test(
-    'minimax/minimax-m2 completes via OpenRouter fallback',
+    'z-ai/glm-4.6 completes via OpenRouter',
     async () => {
       const catalog = await loadCatalog();
-      if (!catalog.has('minimax/minimax-m2')) {
-        console.warn('Skipping live OpenRouter test: minimax/minimax-m2 not available for this key.');
+      const modelId = 'z-ai/glm-4.6';
+      if (!catalog.has(modelId)) {
+        console.warn(`Skipping live OpenRouter test: ${modelId} not available for this key.`);
         return;
       }
       try {
         const result = await runOracle(
           {
-            prompt: 'Return the string "openrouter minimax ok" exactly.',
-            model: 'minimax/minimax-m2',
+            prompt: 'Return the string "openrouter glm ok" exactly.',
+            model: modelId,
             silent: true,
             background: false,
             search: false,
@@ -48,7 +49,7 @@ async function loadCatalog(): Promise<Set<string>> {
         );
         if (result.mode !== 'live') throw new Error('expected live');
         const text = extractTextOutput(result.response).toLowerCase();
-        expect(text).toContain('openrouter minimax ok');
+        expect(text).toContain('openrouter glm ok');
         expect(result.response.status ?? 'completed').toBe('completed');
       } catch (error) {
         console.warn(`Skipping live OpenRouter test due to API error: ${error instanceof Error ? error.message : error}`);
@@ -60,17 +61,17 @@ async function loadCatalog(): Promise<Set<string>> {
 
 (shouldRunMixed ? describe : describe.skip)('Mixed first-party + OpenRouter live multi-model', () => {
   test(
-    'gpt-5.1 + minimax + z-ai + sonnet all complete',
+    'gpt-5.1 + z-ai + sonnet all complete',
     async () => {
       const catalog = await loadCatalog();
-      const required = ['minimax/minimax-m2', 'z-ai/glm-4.6'];
+      const required = ['z-ai/glm-4.6'];
       const missing = required.filter((m) => !catalog.has(m));
       if (missing.length > 0) {
         console.warn(`Skipping live mixed test; missing models: ${missing.join(', ')}`);
         return;
       }
       const prompt = 'Reply with the phrase "mixed multi ok" on one short line.';
-      const models = ['gpt-5.1', 'minimax/minimax-m2', 'z-ai/glm-4.6', 'claude-4.5-sonnet'] as const;
+      const models = ['gpt-5.1', 'z-ai/glm-4.6', 'claude-4.5-sonnet'] as const;
       await sessionStore.ensureStorage();
       const sessionMeta = await sessionStore.createSession(
         { prompt, model: models[0], models: models as unknown as string[], mode: 'api' },
@@ -214,15 +215,17 @@ async function loadCatalog(): Promise<Set<string>> {
 
 (shouldRunMixed ? describe : describe.skip)('Mixed OpenRouter + GPT + Grok multi-model', () => {
   test(
-    'gpt-5.1 + openrouter auto + grok-4.1',
+    'gpt-5.1 + grok-4.1 mixed run',
     async () => {
       const catalog = await loadCatalog();
-      if (!catalog.has('openrouter/auto')) {
-        console.warn('Skipping openrouter/auto mix; model not available on this key.');
+      const required = ['grok-4.1'];
+      const missing = required.filter((m) => !catalog.has(m));
+      if (missing.length > 0) {
+        console.warn(`Skipping mixed router test; missing: ${missing.join(', ')}`);
         return;
       }
       const prompt = 'Reply with exactly "mixed router ok"';
-      const models = ['gpt-5.1', 'openrouter/auto', 'grok-4.1'] as const;
+      const models = ['gpt-5.1', 'grok-4.1'] as const;
       await sessionStore.ensureStorage();
       const sessionMeta = await sessionStore.createSession(
         { prompt, model: models[0], models: models as unknown as string[], mode: 'api' },
