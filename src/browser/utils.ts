@@ -120,7 +120,8 @@ export function normalizeChatgptUrl(raw: string | null | undefined, fallback: st
   if (!/^https?:$/i.test(parsed.protocol)) {
     throw new Error(`Invalid ChatGPT URL protocol: "${parsed.protocol}". Use http or https.`);
   }
-  // Preserve user-provided path/query; URL#toString will normalize trailing slashes appropriately.
+
+
   return parsed.toString();
 }
 

@@ -125,6 +125,44 @@ describe("buildBrowserConfig", () => {
     expect(config.url).toBe("https://chatgpt.example.com/workspace");
   });
 
+  test("preserves bare custom GPT URLs unchanged", async () => {
+    const config = await buildBrowserConfig({
+      model: "gpt-5.1",
+      chatgptUrl: "https://chatgpt.com/g/g-69a9ff1aed788191a377fe17cc757609-serena-gpt",
+    });
+    expect(config.url).toBe(
+      "https://chatgpt.com/g/g-69a9ff1aed788191a377fe17cc757609-serena-gpt",
+    );
+  });
+
+  test("supports bare custom GPT hash URLs", async () => {
+    const config = await buildBrowserConfig({
+      model: "gpt-5.1",
+      chatgptUrl: "https://chatgpt.com/g/g-69a9ff1aed788191a377fe17cc757609",
+    });
+    expect(config.url).toBe("https://chatgpt.com/g/g-69a9ff1aed788191a377fe17cc757609");
+  });
+
+  test("preserves query and hash on bare custom GPT URLs", async () => {
+    const config = await buildBrowserConfig({
+      model: "gpt-5.1",
+      chatgptUrl: "https://chatgpt.com/g/g-69a9ff1aed788191a377fe17cc757609?foo=bar#section",
+    });
+    expect(config.url).toBe(
+      "https://chatgpt.com/g/g-69a9ff1aed788191a377fe17cc757609?foo=bar#section",
+    );
+  });
+
+  test("keeps explicit custom GPT project URLs unchanged", async () => {
+    const config = await buildBrowserConfig({
+      model: "gpt-5.1",
+      chatgptUrl: "https://chatgpt.com/g/g-69a9ff1aed788191a377fe17cc757609-serena-gpt/project",
+    });
+    expect(config.url).toBe(
+      "https://chatgpt.com/g/g-69a9ff1aed788191a377fe17cc757609-serena-gpt/project",
+    );
+  });
+
   test("rejects invalid chatgpt URL protocols", async () => {
     await expect(
       buildBrowserConfig({

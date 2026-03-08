@@ -1,0 +1,12 @@
+Common commands:
+- `pnpm build` — compile the CLI
+- `pnpm test` — run the full Vitest suite
+- `pnpm vitest run tests/cli/browserConfig.test.ts` — focused browser config tests
+- `pnpm check` — format check + lint
+- `pnpm typecheck` — TypeScript noEmit check
+- `pnpm format` — apply formatting
+- `pnpm lint` — typecheck + oxlint
+- `pnpm start` — build and run CLI
+- `pnpm mcp` — build and run MCP entrypoint
+- `pnpm test:browser` — browser smoke flow
+- `ORACLE_LIVE_TEST=1 pnpm vitest run tests/live/openai-live.test.ts` — opt-in live OpenAI/browser coverage

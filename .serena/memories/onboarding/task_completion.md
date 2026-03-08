@@ -1,0 +1,1 @@
+After code changes, run the most relevant focused test first, then broader checks as needed. Be explicit about what was actually verified. For browser-facing changes, consult `AGENTS.md` for manual smoke/live guidance and update changelog/docs when the change affects end users or public behavior.
